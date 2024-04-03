@@ -12,7 +12,7 @@ print:
   jz %5 done_print
   .char %5
   add %8 %8 %1
-  jump print
+  jmp print
 done_print:
   ret %9
 
@@ -34,7 +34,7 @@ loop:
   jp %0 loop
   add %c %c %1
   mov %d 0
-  jump loop
+  jmp loop
 done:
   mov %8 q
   proc %9 print
@@ -44,5 +44,4 @@ done:
   proc %9 print
   .den %d
   .line
-  .state
   halt

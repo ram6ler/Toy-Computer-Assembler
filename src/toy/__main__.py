@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
         if ".asm" in argv[1]:
             pc, ram = assemble(code)
-            computer.load(pc, ram)
+            computer.set_state(pc, ram)
         else:
-            computer.load_machine_code(code)
-        computer.execute()
+            computer.compile_machine_language(code)
+        computer.run()

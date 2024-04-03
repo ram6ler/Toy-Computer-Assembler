@@ -22,7 +22,7 @@ print:
   jz %c done_print
   .char %c
   add %a %a 1
-  jump print
+  jmp print
 done_print:
   ret %b
 
@@ -56,17 +56,17 @@ compare:
   jz %2 if_too_low
   sub %4 %4 1
   jz %4 if_too_high
-  jump compare
+  jmp compare
 if_too_low:
   mov %a too_low
   proc %b print
   .line
-  jump loop
+  jmp loop
 if_too_high:
   mov %a too_high
   proc %b print
   .line
-  jump loop
+  jmp loop
 if_correct:
   mov %a correct_1
   proc %b print

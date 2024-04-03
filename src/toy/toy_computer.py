@@ -2,7 +2,7 @@ from random import randrange
 from .exception import ToyException
 
 
-def _readInteger() -> int:
+def readInteger() -> int:
     while True:
         result = input()
         if len(result) > 2:
@@ -19,16 +19,21 @@ def _readInteger() -> int:
             base, result = 10, result
 
         try:
-            return int(result, base)
+            v = int(result, base)
+            w = abs(v) & 0xFFFF
+            if v != w:
+                print(f"* Taking input to be {hex(w)}")
+            return w
+
         except ValueError:
             print("* Invalid input. Try again: ", end="")
 
 
-def _nibble(x: int) -> str:
+def make_nibble(x: int) -> str:
     return hex(x)[2:]
 
 
-def _byte(x: int) -> str:
+def make_byte(x: int) -> str:
     return hex(x)[2:].rjust(2, "0")
 
 
@@ -40,6 +45,9 @@ class ToyComputer:
 
     @staticmethod
     def decode(instruction: int) -> tuple[int, int, int, int, int]:
+        """
+        Splits instruction into parts `op`, `d`, `s`, `t`, `addr`.
+        """
         return (
             (instruction & 0xF000) >> 12,
             (instruction & 0x0F00) >> 8,
@@ -49,69 +57,91 @@ class ToyComputer:
         )
 
     @staticmethod
-    def pseudo(instruction: int) -> str:
+    def as_pseudocode(instruction: int) -> str:
+        """
+        Returns a pseudocode description of an instruction value.
+        """
         op, d, s, t, addr = ToyComputer.decode(instruction)
         match op:
             case 0x0:
                 return "-"
             case 0x1:
-                return f"R[{_nibble(d)}] <- R[{_nibble(s)}] + R[{_nibble(t)}]"
+                return (
+                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] + R[{make_nibble(t)}]"
+                )
             case 0x2:
-                return f"R[{_nibble(d)}] <- R[{_nibble(s)}] - R[{_nibble(t)}]"
+                return (
+                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] - R[{make_nibble(t)}]"
+                )
             case 0x3:
-                return f"R[{_nibble(d)}] <- R[{_nibble(s)}] & R[{_nibble(t)}]"
+                return (
+                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] & R[{make_nibble(t)}]"
+                )
             case 0x4:
-                return f"R[{_nibble(d)}] <- R[{_nibble(s)}] ^ R[{_nibble(t)}]"
+                return (
+                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] ^ R[{make_nibble(t)}]"
+                )
             case 0x5:
-                return f"R[{_nibble(d)}] <- R[{_nibble(s)}] << R[{_nibble(t)}]"
+                return (
+                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] << R[{make_nibble(t)}]"
+                )
             case 0x6:
-                return f"R[{_nibble(d)}] <- R[{_nibble(s)}] >> R[{_nibble(t)}]"
+                return (
+                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] >> R[{make_nibble(t)}]"
+                )
             case 0x7:
-                return f"R[{_nibble(d)}] <- {_nibble(addr)}"
+                return f"R[{make_nibble(d)}] <- {make_nibble(addr)}"
             case 0x8:
-                return f"R[{_nibble(d)}] <- M[{_byte(addr)}]"
+                return f"R[{make_nibble(d)}] <- M[{make_byte(addr)}]"
             case 0x9:
-                return f"M[{_byte(addr)}] <- R[{_nibble(d)}]"
+                return f"M[{make_byte(addr)}] <- R[{make_nibble(d)}]"
             case 0xA:
-                return f"R[{_nibble(d)}] <- M[R[{_nibble(t)}]]"
+                return f"R[{make_nibble(d)}] <- M[R[{make_nibble(t)}]]"
             case 0xB:
-                return f"M[R[{_nibble(t)}]] <- R[{_nibble(d)}]"
+                return f"M[R[{make_nibble(t)}]] <- R[{make_nibble(d)}]"
             case 0xC:
-                return f"if (R[{_nibble(d)}] == 0) PC <- {_byte(addr)}"
+                return f"if (R[{make_nibble(d)}] == 0) PC <- {make_byte(addr)}"
             case 0xD:
-                return f"if (R[{_nibble(d)}] > 0) PC <- {_byte(addr)}"
+                return f"if (R[{make_nibble(d)}] > 0) PC <- {make_byte(addr)}"
             case 0xE:
-                return f"PC <- R[{_nibble(d)}]"
+                return f"PC <- R[{make_nibble(d)}]"
             case 0xF:
-                return f"R[{_nibble(d)}] <- PC; PC <- {_byte(addr)}"
+                return f"R[{make_nibble(d)}] <- PC; PC <- {make_byte(addr)}"
             case _:
                 return ""
 
     def step(self) -> bool:
-        def store(addr: int, r_index: int) -> None:
-            match addr:
+        """
+        Performs a single fetch-decode-execute cycle.
+        """
+
+        def store(memory_address: int, register_address: int) -> None:
+            """
+            Stores value into memory or performs special output operation.
+            """
+            match memory_address:
                 case 0xF1:
                     # binary out
-                    print(bin(self.registers[r_index])[2:], end="")
+                    print(bin(self.registers[register_address])[2:], end="")
                 case 0xF2:
                     # octal out
-                    print(oct(self.registers[r_index])[2:], end="")
+                    print(oct(self.registers[register_address])[2:], end="")
                 case 0xF3:
                     # hexadecimal out
-                    print(hex(self.registers[r_index])[2:], end="")
+                    print(hex(self.registers[register_address])[2:], end="")
                 case 0xF4:
                     # denary out
-                    print(self.registers[r_index], end="")
+                    print(self.registers[register_address], end="")
                 case 0xF5:
                     # char out
-                    print(chr(self.registers[r_index]), end="")
+                    print(chr(self.registers[register_address]), end="")
                 case 0xF6:
                     # new line
                     print()
                 case 0xF7:
                     # pattern
                     print(
-                        bin(self.registers[r_index])[2:]
+                        bin(self.registers[register_address])[2:]
                         .replace("0", " ")
                         .replace("1", "█")
                         .rjust(16)
@@ -121,18 +151,33 @@ class ToyComputer:
                     print(f"\n{self.dump()}")
                 case 0xF9:
                     # state
-                    print(f"\n{self.state_to_machine_code()}")
+                    print(f"\n{self.state_to_machine_language()}")
                 case _:
-                    self.memory[addr] = self.registers[r_index]
+                    self.memory[memory_address] = self.registers[register_address]
 
-        def load(addr: int, r_index: int) -> None:
-            match addr:
+        def load(memory_address: int, register_address: int) -> None:
+            """
+            Loads value into register or performs special input operation.
+            """
+            match memory_address:
                 case 0xF0:
-                    self.registers[r_index] = _readInteger()
+                    # Load an integer value.
+                    self.registers[register_address] = readInteger()
                 case 0xFA:
-                    self.registers[r_index] = randrange(0x10000)
+                    # Load a random word.
+                    self.registers[register_address] = randrange(0x10000)
+                case 0xFB:
+                    # Store a string starting at address in register.
+                    data = [x for c in input() if (x := ord(c)) >= 0x20 and x <= 0x7F]
+                    start = self.registers[register_address]
+                    for i, v in enumerate(data):
+                        if (address := start + i) < len(self.memory):
+                            self.memory[address] = v
+                        else:
+                            break
                 case _:
-                    self.registers[r_index] = self.memory[addr]
+                    # R[d] <- M[addr]
+                    self.registers[register_address] = self.memory[memory_address]
 
         ir = self.memory[self.pc]
         op, d, s, t, addr = ToyComputer.decode(ir)
@@ -195,11 +240,22 @@ class ToyComputer:
 
         return (self.memory[self.pc] & 0xF000) != 0
 
-    def execute(self) -> None:
+    def run(self) -> None:
+        """
+        Repeats load-decode-execute cycle until halt is encountered.
+        """
         while self.step():
             pass
 
-    def load(self, pc: int, ram: list[int], registers: list[int] = []) -> None:
+    def set_state(
+        self,
+        pc: int,
+        ram: list[int],
+        registers: list[int] = [],
+    ) -> None:
+        """
+        Sets the program counter, memory contents and register contents.
+        """
         if pc < 0 or pc > 0xFF:
             raise ToyException("Bad program counter.")
         if len(ram) > 0x100:
@@ -211,9 +267,19 @@ class ToyComputer:
             else:
                 self.memory[i] = 0
         for i in range(0x10):
-            self.registers[i] = 0
+            if i < len(registers):
+                self.registers[i] = registers[i]
+            else:
+                self.registers[i] = 0
 
-    def load_machine_code(self, code: str) -> None:
+    def compile_machine_language(self, code: str) -> None:
+        """
+        Compiles and loads machine language.
+
+        Each line is expected to be of the form address: value. The
+        program counter can be set using PC: value. Comments starting
+        with a semi-colon are ignored.
+        """
         pc = 0
         registers = [0 for _ in range(0x10)]
         ram = [0 for _ in range(0x100)]
@@ -236,9 +302,14 @@ class ToyComputer:
             except ValueError:
                 raise ToyException(f"Bad instruction: {line}")
 
-        self.load(pc, ram, registers)
+        self.set_state(pc, ram, registers)
 
-    def state_to_machine_code(self) -> str:
+    def state_to_machine_language(self) -> str:
+        """
+        Returns a compilable machine language representation
+        of the current state.
+        """
+
         def column(x: str, width=18):
             return x.rjust(width)
 
@@ -254,12 +325,16 @@ class ToyComputer:
                     + column(f"'{chr(v)}'" if 0x20 <= v <= 0x7F else "-")
                     + column(str(v))
                     + column(bin(v)[2:].rjust(16, "0"))
-                    + column(ToyComputer.pseudo(v), 25)
+                    + column(ToyComputer.as_pseudocode(v), 25)
                     + "\n"
                 )
         return result
 
     def dump(self) -> str:
+        """
+        Returns a dump of all data in the current state.
+        """
+
         def pad(x: str) -> str:
             return x.rjust(5)
 
@@ -278,7 +353,7 @@ class ToyComputer:
             result += "\n"
         result += f"\n{pad("PC:")}{pad(hex(self.pc)[2:].rjust(2, "0"))}"
         ir = self.memory[self.pc]
-        result += f"{pad("IR:")}{pad(hex(ir)[2:].rjust(4, "0"))} {ToyComputer.pseudo(self.memory[self.pc])}"
+        result += f"{pad("IR:")}{pad(hex(ir)[2:].rjust(4, "0"))} {ToyComputer.as_pseudocode(self.memory[self.pc])}"
         result += "\n\n"
 
         return result

@@ -3,7 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+dist/
+*.egg*
+
 # mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+play.py

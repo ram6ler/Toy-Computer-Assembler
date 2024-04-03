@@ -52,8 +52,8 @@ expressions = {
     "jz d l": compile(f"^jz{pat("register")}{pat("label")}$"),
     "jp d a": compile(f"^jp{pat("register")}{pat("value")}$"),
     "jp d l": compile(f"^jp{pat("register")}{pat("label")}$"),
-    "jump a": compile(f"^jump{pat("value")}$"),
-    "jump l": compile(f"^jump{pat("label")}$"),
+    "jmp a": compile(f"^jmp{pat("value")}$"),
+    "jmp l": compile(f"^jmp{pat("label")}$"),
     "proc d a": compile(f"^proc{pat("register")}{pat("value")}$"),
     "proc d l": compile(f"^proc{pat("register")}{pat("label")}$"),
     "ret d": compile(f"^ret{pat("register")}$"),
@@ -72,6 +72,7 @@ expressions = {
     ".hex": compile(r"^\.hex" + pat("register") + "$"),
     ".pattern": compile(r"^\.pattern" + pat("register") + "$"),
     ".input": compile(r"^\.input" + pat("register") + "$"),
+    ".string": compile(r"^\.string" + pat("register") + "$"),
     ".rand": compile(r"^\.rand" + pat("register") + "$"),
 }
 
@@ -176,6 +177,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
         for special, addr in {
             ".input": 0xF0,
             ".rand": 0xFA,
+            ".string": 0xFB,
         }.items():
             m = expressions[special].match(line)
             if m:
@@ -457,7 +459,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["jump a"].match(line)
+        m = expressions["jmp a"].match(line)
         if m:
             addr = parse_value(m.group(1))
             machine_code.extend(
@@ -470,7 +472,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["jump l"].match(line)
+        m = expressions["jmp l"].match(line)
         if m:
             label = m.group(1)
             if label not in addresses:

@@ -8,7 +8,7 @@ loop_prompt:
   jz %1 done_prompt
   .char %1
   add %0 %0 1
-  jump loop_prompt
+  jmp loop_prompt
 done_prompt:
   .input %0
   and %0 %0 0x000F
@@ -23,14 +23,14 @@ find_face:
   jz %0 draw_face
   add %a %a 16
   sub %0 %0 1
-  jump find_face
+  jmp find_face
 draw_face:
   jz %b end
   mov %c [%a]
   .pattern %c
   add %a %a 1
   sub %b %b 1
-  jump draw_face
+  jmp draw_face
 end:
   .line
   halt

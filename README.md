@@ -16,6 +16,7 @@ Loading data (instructions 8 and A) to register d from addresses F0 and FA has t
 |:--:|:--|
 |F0|Stores data input via stdin to d.|
 |FA|Loads a random word to d.|
+|FB|Stores a string input via stdin to memory starting at address in d.|
 
 ## Special Store Addresses
 
@@ -106,11 +107,31 @@ Programs can also be written in a simple assembly language with the following in
 |jz d l|jz %0 end|Jumps to address marked by label l if value in register d is zero.|
 |jp d a|jp %0 0xA0|Jumps to address a if value in register d is positive.|
 |jp d l|jp %0 end|Jumps to address marked by label l if value in register d is positive.|
-|jump a|jump 0xA0|Jumps to address a.|
-|jump l|jump loop|Jumps to address marked by label l.|
+|jmp a|jmp 0xA0|Jumps to address a.|
+|jmp l|jmp loop|Jumps to address marked by label l.|
 |proc d a|proc %0 0xA0|Stores current position to register d and jumps to address a.|
 |proc d l|proc %0 print|Stores current position to register d and jumps to address marked by label l.|
 |ret d|ret %0|Jumps to address stored in register d.|
+
+### Special Instructions
+
+|Instruction|Example|Effect|
+|:--|:--|:--|
+|.main|.main|Indicates the start point of the program.|
+|.word|.word|Adds an empty register to the memory.|
+|.dump|.dump|Outputs data in registers and memory.|
+|.state|.state|Outputs data in registers and memory as machine code.|
+|.data|.data 1, 0xAB12, 0b101|Stores data to memory.|
+|.ascii|.ascii "Hello, world!"|Stores ascii values of characters (then zero) to memory.|
+|.line|.line|Outputs a new line.|
+|.char s|.char %0|Outputs value in register s as an ascii character.|
+|.bin s|.bin %0|Outputs value in register s as binary.|
+|.oct s|.oct %0|Outputs value in register s as octal.|
+|.den s|.den %0|Outputs value in register s as denary.|
+|.hex s|.hex %0|Outputs value in register s as hexadecimal.|
+|.rand d|.random %0|Stores random value to register d.|
+|.input d|.input %0|Stores input value to register d.|
+|.string d|.string %0|Stores input string as ascii values to memory starting at address in d.|
 
 For example, the file *smiley.asm* contains the following assembly:
 
@@ -125,7 +146,7 @@ loop_prompt:
   jz %1 done_prompt
   .char %1
   add %0 %0 1
-  jump loop_prompt
+  jmp loop_prompt
 done_prompt:
   .input %0
   and %0 %0 0x000F
@@ -142,7 +163,7 @@ find_face:
   jz %0 draw_face
   add %a %a 16
   sub %0 %0 1
-  jump find_face
+  jmp find_face
 
 draw_face:
   jz %b end
@@ -150,7 +171,7 @@ draw_face:
   .pattern %c
   add %a %a 1
   sub %b %b 1
-  jump draw_face
+  jmp draw_face
 end:
   .line
   halt
@@ -214,22 +235,14 @@ python -m toy examples/assembly/smiley.asm
 
 ## To Use as a Library
 
-Import the `ToyComputer` class:
-
-```py
-from toy import ToyComputer
-```
-
-Create a computer:
-
-```py
-computer = ToyComputer()
-```
-
 Either feed the PC, RAM and register data directly to the computer...
 
 ```py
-computer.load(
+from toy import ToyComputer
+
+computer = ToyComputer()
+
+computer.set_state(
     pc=0x00,
     ram=[
         0x7001,
@@ -250,13 +263,17 @@ computer.load(
     registers=[],
 )
 
-computer.execute()
+computer.run()
 ```
 
 ... or compile machine language...
 
 ```py
-computer.load_machine_code(
+from toy import ToyComputer
+
+computer = ToyComputer()
+
+computer.compile_machine_language(
     """
     PC: 00
     00: 7001
@@ -275,7 +292,8 @@ computer.load_machine_code(
     0D: 0000
     """
 )
-computer.execute()
+
+computer.run()
 ```
 
 ... or compile assembly:
@@ -307,7 +325,7 @@ pc, ram = assemble(
       mov %2 %3
       .den %1
       .line
-      jump loop
+      jmp loop
     end: 
       halt
 
@@ -316,17 +334,17 @@ pc, ram = assemble(
       jz %1 done_print
       .char %1
       add %0 %0 1
-      jump print
+      jmp print
     done_print:
       ret %a
     """
 )
 
 computer = ToyComputer()
-computer.load(pc, ram)
-computer.execute()
+computer.set_state(pc, ram)
+computer.run()
 ```
 
 ## Thanks
 
-Thanks for your interest in this project. Be sure to [file bugs or requests]()!
+Thanks for your interest in this project! Be sure to [file bugs or requests](https://github.com/ram6ler/Toy-Computer-Assembler/issues)!
