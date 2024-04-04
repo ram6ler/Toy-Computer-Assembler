@@ -2,9 +2,9 @@ prompt:
   .ascii "How are you feeling (1: happy, 2: neutral, 3: sad)? "
 
 .main
-  load %0 prompt
+  ld %0 prompt
 loop_prompt:
-  load %1 [%0]
+  ld %1 [%0]
   jz %1 done_prompt
   .char %1
   add %0 1
@@ -17,8 +17,8 @@ done_prompt:
 okay:
   .line
   sub %0 1
-  load %a happy
-  load %b 16
+  ld %a happy
+  ld %b 16
 find_face:
   jz %0 draw_face
   add %a 16
@@ -26,7 +26,7 @@ find_face:
   jmp find_face
 draw_face:
   jz %b end
-  load %c [%a]
+  ld %c [%a]
   .pattern %c
   add %a 1
   sub %b 1

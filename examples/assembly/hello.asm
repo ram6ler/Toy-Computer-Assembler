@@ -6,7 +6,7 @@ exclaim:
   .ascii "!"
 
 print:
-  load %b [%a]
+  ld %b [%a]
   jz %b done_print
   .char %b
   add %a 1
@@ -15,15 +15,15 @@ done_print:
   ret %0
 
 .main
-  load %a prompt
+  ld %a prompt
   proc %0 print
-  load %a 0xA0
+  ld %a 0xA0
   .string %a
-  load %a greet
+  ld %a greet
   proc %0 print
-  load %a 0xA0
+  ld %a 0xA0
   proc %0 print
-  load %a exclaim
+  ld %a exclaim
   proc %0 print
   .line
   halt
