@@ -6,24 +6,24 @@ exclaim:
   .ascii "!"
 
 print:
-  mov %b [%a]
+  load %b [%a]
   jz %b done_print
   .char %b
-  add %a %a 1
+  add %a 1
   jmp print
 done_print:
   ret %0
 
 .main
-  mov %a prompt
+  load %a prompt
   proc %0 print
-  mov %a 0xA0
+  load %a 0xA0
   .string %a
-  mov %a greet
+  load %a greet
   proc %0 print
-  mov %a 0xA0
+  load %a 0xA0
   proc %0 print
-  mov %a exclaim
+  load %a exclaim
   proc %0 print
   .line
   halt

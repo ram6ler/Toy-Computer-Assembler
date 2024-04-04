@@ -5,6 +5,8 @@ from .exception import ToyException
 
 def pat(s: str) -> str:
     match s:
+        case "op":
+            return r" *([a-zA-Z]*) *"
         case "register":
             return r" *%([0-9A-Fa-f]) *"
         case "value":
@@ -20,34 +22,33 @@ def pat(s: str) -> str:
     raise NotImplementedError()
 
 
+op_map = {
+    "add": 0x1,
+    "sub": 0x2,
+    "and": 0x3,
+    "xor": 0x4,
+    "lsh": 0x5,
+    "rsh": 0x6,
+}
+
 expressions = {
     # Assembly
     "label": compile(f"^{pat("label")}: *$"),
     "halt": compile(r"^halt$"),
     "not d t": compile(f"^not{pat("register") * 2}$"),
-    "and d s t": compile(f"^and{pat("register") * 3}$"),
-    "and d s v": compile(f"^and{pat("register") * 2}{pat("value")}$"),
-    "xor d s t": compile(f"^xor{pat("register") * 3}$"),
-    "xor d s v": compile(f"^xor{pat("register") * 2}{pat("value")}$"),
-    "lsh d s t": compile(f"^lsh{pat("register") * 3}$"),
-    "lsh d s v": compile(f"^lsh{pat("register") * 2}{pat("value")}$"),
-    "rsh d s t": compile(f"^rsh{pat("register") * 3}$"),
-    "rsh d s v": compile(f"^rsh{pat("register") * 2}{pat("value")}$"),
-    "add d s t": compile(f"^add{pat("register") * 3}$"),
-    "add d s v": compile(f"^add{pat("register") * 2}{pat("value")}$"),
-    "sub d s t": compile(f"^sub{pat("register") * 3}$"),
-    "sub d s v": compile(f"^sub{pat("register") * 2}{pat("value")}$"),
-    "or d s t": compile(f"^or{pat("register") * 3}$"),
-    "or d s v": compile(f"^or{pat("register") * 2}{pat("value")}$"),
-    "mov d v": compile(f"^mov{pat("register")}{pat("value")}$"),
-    "mov d l": compile(f"^mov{pat("register")}{pat("label")}$"),
-    "mov d a": compile(f"^mov{pat("register")}{pat("at_address")}$"),
-    "mov a s": compile(f"^mov{pat("at_address")}{pat("register")}$"),
-    "mov la d": compile(f"^mov{pat("at_label")}{pat("register")}$"),
-    "mov d la": compile(f"^mov{pat("register")}{pat("at_label")}$"),
-    "mov d s": compile(f"^mov{pat("register") * 2}$"),
-    "mov d p": compile(f"^mov{pat("register")}{pat("at_register")}$"),
-    "mov p s": compile(f"^mov{pat("at_register")}{pat("register")}$"),
+    "not d v": compile(f"^not{pat("register")}{pat("value")}$"),
+    "op d s t": compile(f"^{pat("op")}{pat("register") * 3}"),
+    "op d s v": compile(f"^{pat("op")}{pat("register") * 2}{pat("value")}$"),
+    "op d s": compile(f"^{pat("op")}{pat("register") * 2}"),
+    "op d v": compile(f"^{pat("op")}{pat("register")}{pat("value")}$"),
+    "load d v": compile(f"^ld{pat("register")}{pat("value")}$"),
+    "load d l": compile(f"^ld{pat("register")}{pat("label")}$"),
+    "load d a": compile(f"^ld{pat("register")}{pat("at_address")}$"),
+    "load d la": compile(f"^ld{pat("register")}{pat("at_label")}$"),
+    "load d p": compile(f"^ld{pat("register")}{pat("at_register")}$"),
+    "store d la": compile(f"^st{pat("at_address")}{pat("register")}$"),
+    "store p d": compile(f"^st{pat("at_register")}{pat("register")}$"),
+    "move d s": compile(f"^mov{pat("register") * 2}$"),
     "jz d a": compile(f"^jz{pat("register")}{pat("value")}$"),
     "jz d l": compile(f"^jz{pat("register")}{pat("label")}$"),
     "jp d a": compile(f"^jp{pat("register")}{pat("value")}$"),
@@ -191,6 +192,30 @@ def assemble(code: str) -> tuple[int, list[int]]:
         if expression_found:
             continue
 
+        m = expressions[".main"].match(line)
+        if m:
+            pc = len(machine_code)
+            continue
+
+        m = expressions[".word"].match(line)
+        if m:
+            machine_code.append(0x0000)
+            continue
+
+        for special, addr in {
+            ".dump": 0xF8,
+            ".line": 0xF6,
+            ".state": 0xF9,
+        }.items():
+            m = expressions[special].match(line)
+            if m:
+                write_to_special(addr)
+                expression_found = True
+                break
+
+        if expression_found:
+            continue
+
         m = expressions["halt"].match(line)
         if m:
             machine_code.append(0x0000)
@@ -207,94 +232,38 @@ def assemble(code: str) -> tuple[int, list[int]]:
                         0xFFFF,
                     ),
                     # R[d] <- R[s] ^ R[E]
-                    0x400 | (d << 8) | (s << 4),
+                    0x4000 | (d << 8) | (s << 4),
                 ]
             )
             continue
 
-        for op, op_code in {
-            "and": 0x3,
-            "xor": 0x4,
-            "lsh": 0x5,
-            "rsh": 0x6,
-            "add": 0x1,
-            "sub": 0x2,
-        }.items():
-            m = expressions[f"{op} d s t"].match(line)
-            if m:
-                d, s, t = (parse_register(m.group(g)) for g in (1, 2, 3))
-                machine_code.append(
-                    # R[d] <- R[s] * R[t]
-                    t | (s << 4) | (d << 8) | (op_code << 12),
-                )
-                expression_found = True
-                break
-            m = expressions[f"{op} d s v"].match(line)
-            if m:
-                d, s = (parse_register(m.group(g)) for g in (1, 2))
-                v = parse_value(m.group(3))
-                if v <= 0xFF:
-                    machine_code.append(
-                        # R[F] <- v
-                        0x7F00 | v,
-                    )
-                else:
-                    machine_code.extend(
-                        store_word_to(0xE, v),
-                    )
-
-                machine_code.append(
-                    # R[d] <- R[s] * R[F]
-                    0x000F | (op_code << 12) | (d << 8) | (s << 4),
-                )
-                expression_found = True
-                break
-
-        if expression_found:
-            continue
-
-        m = expressions["or d s t"].match(line)
+        m = expressions["not d v"].match(line)
         if m:
-            d, s, t = (parse_register(m.group(g)) for g in (1, 2, 3))
-            machine_code.extend(
-                [
-                    # R[E] <- R[s] & R[t]
-                    0x3E00 | (s << 4) | t,
-                    # R[F] <- R[s] ^ R[t]
-                    0x4F00 | (s << 4) | t,
-                    # R[d] <- R[E] ^ R[F]
-                    0x40EF | (d << 8),
-                ]
-            )
-            continue
-
-        m = expressions["or d s v"].match(line)
-        if m:
-            d, s = (parse_register(m.group(g)) for g in (1, 2))
-            v = parse_value(m.group(3))
+            d = parse_register(m.group(1))
+            v = parse_value(m.group(2))
             if v <= 0xFF:
                 machine_code.append(
-                    # R[E] <- v
-                    0x7E00 | v,
+                    # R[F] <- v
+                    0x7F00 | v,
                 )
             else:
                 machine_code.extend(
-                    store_word_to(0xE, v),
+                    store_word_to(0xF, v),
                 )
 
             machine_code.extend(
                 [
-                    # R[F] <- R[E] ^ R[s]
-                    0x4FE0 | s,
-                    # R[E] <- R[E] & R[s]
-                    0x3EE0 | s,
-                    # R[d] <- R[E] ^ R[F]
-                    0x40EF | (d << 8),
+                    *store_word_to(
+                        0xE,
+                        0xFFFF,
+                    ),
+                    # R[d] <- R[F] ^ R[E]
+                    0x40FE | (d << 8),
                 ]
             )
             continue
 
-        m = expressions["mov d l"].match(line)
+        m = expressions["load d l"].match(line)
         if m:
             d = parse_register(m.group(1))
             label = m.group(2)
@@ -307,7 +276,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["mov d v"].match(line)
+        m = expressions["load d v"].match(line)
         if m:
             d = parse_register(m.group(1))
             addr = parse_value(m.group(2))
@@ -330,7 +299,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["mov d a"].match(line)
+        m = expressions["load d a"].match(line)
         if m:
             d = parse_register(m.group(1))
             addr = parse_value(m.group(2))
@@ -340,7 +309,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["mov a s"].match(line)
+        m = expressions["store d la"].match(line)
         if m:
             addr = parse_value(m.group(1))
             s = parse_register(m.group(2))
@@ -350,24 +319,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["mov la d"].match(line)
-        if m:
-            label = m.group(1)
-            d = parse_register(m.group(2))
-            if label not in addresses:
-                addresses[label] = []
-            addresses[label].append(len(machine_code))
-            machine_code.extend(
-                [
-                    # R[F] <- M[??]
-                    0xAF00,
-                    # M[R[F]] <- R[d]
-                    0xB00F | (d << 8),
-                ]
-            )
-            continue
-
-        m = expressions["mov d la"].match(line)
+        m = expressions["load d la"].match(line)
         if m:
             d = parse_register(m.group(1))
             label = m.group(2)
@@ -380,7 +332,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["mov d s"].match(line)
+        m = expressions["move d s"].match(line)
         if m:
             d, s = (parse_register(m.group(g)) for g in (1, 2))
             machine_code.extend(
@@ -393,7 +345,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["mov d p"].match(line)
+        m = expressions["load d p"].match(line)
         if m:
             d = parse_register(m.group(1))
             p = parse_register(m.group(2))
@@ -403,7 +355,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["mov p s"].match(line)
+        m = expressions["store p d"].match(line)
         if m:
             p = parse_register(m.group(1))
             s = parse_register(m.group(2))
@@ -520,28 +472,133 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions[".main"].match(line)
+        m = expressions["op d s t"].match(line)
         if m:
-            pc = len(machine_code)
-            continue
+            op = m.group(1).lower()
+            d, s, t = (parse_register(m.group(g)) for g in (2, 3, 4))
+            if op == "or":
+                machine_code.extend(
+                    [
+                        # R[E] <- R[s] & R[t]
+                        0x3E00 | (s << 4) | t,
+                        # R[F] <- R[s] ^ R[t]
+                        0x4F00 | (s << 4) | t,
+                        # R[d] <- R[E] ^ R[F]
+                        0x40EF | (d << 8),
+                    ]
+                )
+                continue
+            if op in op_map:
+                machine_code.append(
+                    # R[d] <- R[s] * R[t]
+                    (op_map[op] << 12) | (d << 8) | (s << 4) | t,
+                )
+                continue
 
-        m = expressions[".word"].match(line)
+            raise ToyException(f"Unknown operator: '{op}'.")
+
+        m = expressions["op d s v"].match(line)
         if m:
-            machine_code.append(0x0000)
-            continue
+            op = m.group(1).lower()
+            d, s = (parse_register(m.group(g)) for g in (2, 3))
+            v = parse_value(m.group(4))
 
-        for special, addr in {
-            ".dump": 0xF8,
-            ".line": 0xF6,
-            ".state": 0xF9,
-        }.items():
-            m = expressions[special].match(line)
-            if m:
-                write_to_special(addr)
-                expression_found = True
-                break
-        if expression_found:
-            continue
+            if v <= 0xFF:
+                machine_code.append(
+                    # R[E] <- v
+                    0x7E00 | v,
+                )
+            else:
+                machine_code.extend(
+                    store_word_to(0xE, v),
+                )
+
+            if op == "or":
+                machine_code.extend(
+                    [
+                        # R[F] <- R[E] ^ R[s]
+                        0x4FE0 | s,
+                        # R[E] <- R[E] & R[s]
+                        0x3EE0 | s,
+                        # R[d] <- R[E] ^ R[F]
+                        0x40EF | (d << 8),
+                    ]
+                )
+                continue
+
+            if op in op_map:
+                machine_code.append(
+                    # R[d] <- R[s] * R[E]
+                    0x000E | (op_map[op] << 12) | (d << 8) | (s << 4),
+                )
+                continue
+
+            raise ToyException(f"Unknown operator: '{op}'.")
+
+        m = expressions["op d s"].match(line)
+        if m:
+            op = m.group(1).lower()
+            d, s = (parse_register(m.group(g)) for g in (2, 3))
+
+            if op == "or":
+                machine_code.extend(
+                    [
+                        # R[E] <- R[d] & R[s]
+                        0x3E00 | (d << 4) | s,
+                        # R[F] <- R[d] ^ R[s]
+                        0x4F00 | (d << 4) | s,
+                        # R[d] <- R[E] ^ R[F]
+                        0x40EF | (d << 8),
+                    ]
+                )
+                continue
+
+            if op in op_map:
+                machine_code.append(
+                    # R[d] <- R[d] * R[s]
+                    (op_map[op] << 12) | (d << 8) | (d << 4) | s,
+                )
+                continue
+
+            raise ToyException(f"Unknown operator: '{op}'.")
+
+        m = expressions["op d v"].match(line)
+        if m:
+            op = m.group(1).lower()
+            d = parse_register(m.group(2))
+            v = parse_value(m.group(3))
+
+            if v <= 0xFF:
+                machine_code.append(
+                    # R[E] <- v
+                    0x7E00 | v,
+                )
+            else:
+                machine_code.extend(
+                    store_word_to(0xE, v),
+                )
+
+            if op == "or":
+                machine_code.extend(
+                    [
+                        # R[F] <- R[E] ^ R[d]
+                        0x4FE0 | d,
+                        # R[E] <- R[E] & R[d]
+                        0x3EE0 | d,
+                        # R[d] <- R[E] ^ R[F]
+                        0x40EF | (d << 8),
+                    ]
+                )
+                continue
+
+            if op in op_map:
+                machine_code.append(
+                    # R[d] <- R[d] * R[E]
+                    0x000E | (op_map[op] << 12) | (d << 8) | (d << 4),
+                )
+                continue
+
+            raise ToyException(f"Unknown operator: '{op}'.")
 
         raise ToyException(f"Cannot parse line: '{line}'")
 

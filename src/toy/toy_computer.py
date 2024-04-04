@@ -326,6 +326,7 @@ class ToyComputer:
                     + column(str(v))
                     + column(bin(v)[2:].rjust(16, "0"))
                     + column(ToyComputer.as_pseudocode(v), 25)
+                    + (" <-----" if self.pc == i else "")
                     + "\n"
                 )
         return result

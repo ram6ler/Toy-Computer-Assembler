@@ -6,9 +6,26 @@ Welcome to *Toy Computer & Assembler*, a simple virtual computer and assembler t
 
 > **Sedgewick, R. & Wayne, K. (2017)** *Computer Science: An Interdisciplinary Approach.* Pearson Education.
 
+With the 2-byte value in the CIR interpreted as either four nibbles `opcode d s t` or two nibbles and a byte `opcode d addr`, the machine instructions available are:
+
+|Opcode|Description|Pseudocode|
+|:--:|:--|:--|
+|0|halt|-|
+|1|add|R[d] <- R[s] + R[t]|
+|2|subtract|R[d] <- R[s] - R[t]|
+|3|bitwise and|R[d] <- R[s] & R[t]|
+|4|bitwise xor|R[d] <- R[s] ^ R[t]|
+|5|left shift|R[d] <- R[s] << R[t]|
+|6|right shift|R[d] <- R[s] >> R[t]|
+|7|load address|R[d] <- addr|
+|8|load|R[d] <- M[addr]|
+|9|store|
+
+## Input / output
+
 Some IO functionality has been associated with a few memory addresses so that an element of user interaction can be implemented more conveniently:
 
-## Special Load Addresses
+### Special Load Addresses
 
 Loading data (instructions 8 and A) to register d from addresses F0 and FA has the following effects:
 
@@ -18,7 +35,7 @@ Loading data (instructions 8 and A) to register d from addresses F0 and FA has t
 |FA|Loads a random word to d.|
 |FB|Stores a string input via stdin to memory starting at address in d.|
 
-## Special Store Addresses
+### Special Store Addresses
 
 Storing data (instructions 9 and B) from register d to addressed F1 to F9 has the following effects.
 
@@ -34,7 +51,7 @@ Storing data (instructions 9 and B) from register d to addressed F1 to F9 has th
 |F8|Outputs the state of the computer.|
 |F9|Outputs the state of the computer in compilable machine language.|
 
-## Machine Language
+## Toy Machine Language
 
 Programs can be written in machine language (as defined by S & W). For example, the file *fibonacci.mc* contains the machine language code:
 
@@ -76,33 +93,11 @@ When executed, the program waits for an integer input from stdin and then output
 
 Programs can also be written in a simple assembly language with the following instructions available:
 
+### Program Control
+
 |Instruction|Example|Effect|
 |:--|:--|:--|
 |halt|halt|Halts execution of the program.|
-|not d t|not %a %b|Stores bitwise not of value in register t to register d.|
-|and d s t|and %a %b %c|Stores bitwise and of values stored in registers s and t in register d.|
-|and d s v|and %a %b 0x89AB|Stores bitwise and of value stored in register s and value v in register d. |
-|or d s t|or %a %b %c|Stores bitwise or of values stored in registers s and t in register d.|
-|or d s v|or %a %b 0x89AB|Stores bitwise or of value stored in register s and value v in register d. |
-|xor d s t|xor %a %b %c|Stores bitwise xor of values stored in registers s and t to register d.|
-|xor d s v|xor %a %b 0x89AB|Stores bitwise xor of value stored in register s and value v to register d. |
-|lsh d s t|lsh %a %b %c|Stores value in register s left shifted by value stored in register t to register d.|
-|lsh d s v|lsh %a %b 3|Stores value in register s left shifted by value v to register d.|
-|rsh d s t|rsh %a %b %c|Stores value in register s right shifted by value stored in register t to register d.|
-|rsh d s v|rsh %a %b 3|Stores value in register s right shifted by value v to register d.|
-|add d s t|add %a %b %c|Stores sum of values stored in registers s and t to register d.|
-|add d s v|add %a %b 0x89AB|Stores sum of value stored in register s and value v to register d. |
-|sub d s t|sub %a %b %c|Stores value stored in register s minus value stored in register t to register d.|
-|sub d s v|sub %a %b 0x89AB|Stores value stored in register s minus value v to register d.|
-|mov d l|mov %0 loop|Stores address marked by label l to register d.|
-|mov d v|mov %0 0x89AB|Stores value v to register d.|
-|mov d a|mov %0 [0xA0]|Copies value at address a to register d.|
-|mov a s|mov [0xA0] %0|Copies value from register s to address a.|
-|mov la d|mov [x] %0|Copies value in register d to address marked by label l.|
-|mov d la|mov %0 [x]|Copies value in address marked by label l to register d.|
-|mov d s|mov %0 %1|Copies value in register s to register d.|
-|mov d p|mov %0 [%1]|Copies value at address stored in register p to register d.|
-|mov p s|mov [%0] %1|Copies value in register s to address stored in register p.|
 |jz d a|jz %0 0xA0|Jumps to address a if value in register d is zero.|
 |jz d l|jz %0 end|Jumps to address marked by label l if value in register d is zero.|
 |jp d a|jp %0 0xA0|Jumps to address a if value in register d is positive.|
@@ -111,7 +106,46 @@ Programs can also be written in a simple assembly language with the following in
 |jmp l|jmp loop|Jumps to address marked by label l.|
 |proc d a|proc %0 0xA0|Stores current position to register d and jumps to address a.|
 |proc d l|proc %0 print|Stores current position to register d and jumps to address marked by label l.|
-|ret d|ret %0|Jumps to address stored in register d.|
+|ret d|ret %0|Jumps to address in register d.|
+
+### Moving Data
+
+|Instruction|Example|Effect|
+|:--|:--|:--|
+|ld d v|ld %0 0x89AB|Loads value v to register d.|
+|ld d a|ld %0 [0xA0]|Loads value at address a to register d.|
+|ld d l|ld %0 loop|Loads address marked by label l to register d.|
+|ld d la|ld %0 [x]|Loads value in address marked by label l to register d.|
+|ld d p|ld %0 [%1]|Loads value at address in register p to register d.|
+|st a s|st [0xA0] %0|Stores value in register s to address a.|
+|st p s|st [%0] %1|Stores value in register s to address in register p.|
+|mov d s|move %0 %1|Moves (copies) value in register s to register d.|
+
+### Operations
+
+For the binary operations:
+
+* *add*
+* *sub*
+* *and*
+* *or*
+* *xor*
+* *lsh* (left shift)
+* *rsh* (right shift)
+
+|Instruction|Example|Effect|
+|:--|:--|:--|
+|(op) d s t|add %0 %1 %2|Performs the operation on the values in registers s and t and stores the result in register d.|
+|(op) d s v|add %0 %1 42|Performs the operation on the the value in register s and value v and stores the result in register d.|
+|(op) d s|add %0 %1|Performs the operation on the values in registers d and s and stores the result back in register d.|
+|(op) d v|add %0 1|Performs the operation on the value in register d and value v and stores the result back in register d.|
+
+For the unary operation *not*:
+
+|Instruction|Example|Effect|
+|:--|:--|:--|
+|not d s|not %0 %1|Stores the negation of the value in register s to register d.|
+|not d v|not %0 0x89AB|Stores the negation of value v to register d.|
 
 ### Special Instructions
 
@@ -140,37 +174,34 @@ prompt:
   .ascii "How are you feeling (1: happy, 2: neutral, 3: sad)? "
 
 .main
-  mov %0 prompt
+  ld %0 prompt
 loop_prompt:
-  mov %1 [%0]
+  ld %1 [%0]
   jz %1 done_prompt
   .char %1
-  add %0 %0 1
+  add %0 1
   jmp loop_prompt
 done_prompt:
   .input %0
-  and %0 %0 0x000F
+  and %0 0x000F
   jp %0 okay
   halt
-
 okay:
   .line
-  sub %0 %0 1
-  mov %a happy
-  mov %b 16
-
+  sub %0 1
+  ld %a happy
+  ld %b 16
 find_face:
   jz %0 draw_face
-  add %a %a 16
-  sub %0 %0 1
+  add %a 16
+  sub %0 1
   jmp find_face
-
 draw_face:
   jz %b end
-  mov %c [%a]
+  ld %c [%a]
   .pattern %c
-  add %a %a 1
-  sub %b %b 1
+  add %a 1
+  sub %b 1
   jmp draw_face
 end:
   .line
@@ -193,6 +224,7 @@ sad:
   .data 0x4422, 0x8C31, 0x8001, 0x9009
   .data 0x83C1, 0x97E9, 0x87E1, 0x57EA
   .data 0x47E2, 0x2004, 0x1818, 0x07E0
+
 ```
 
 When executed, the program asks the user how he or she is feeling and then draws a corresponding picture to the terminal:
@@ -219,7 +251,15 @@ How are you feeling (1: happy, 2: neutral, 3: sad)? 1
 
 ```
 
-## To Use as a Module
+## Installing
+
+Install directly from this repository:
+
+```text
+pip install git+https://github.com/ram6ler/Toy-Computer-Assembler.git@main
+```
+
+### To Use as a Module
 
 The folder *toy* can be used as a module to compile and execute programs written in machine language or assembly. For example, to compile and run the above, we could use:
 
@@ -233,7 +273,7 @@ python -m toy examples/assembly/smiley.asm
 
 (The module looks for the substring .asm in the file name to determine how to compile the file.)
 
-## To Use as a Library
+### To Use as a Library
 
 Either feed the PC, RAM and register data directly to the computer...
 
@@ -303,40 +343,35 @@ from toy import ToyComputer, assemble
 
 pc, ram = assemble(
     r"""
-    title:
-      .ascii "Fibonacci!"
     prompt:
-      .ascii "Number of terms: "
-
-    .main
-      mov %0 title
-      proc %a print
-      .line
-      mov %0 prompt
-      proc %a print
-      .input %0
-      mov %1 0
-      mov %2 1
-    loop:
-      jz %0 end
-      sub %0 %0 1
-      add %3 %1 %2
-      mov %1 %2
-      mov %2 %3
-      .den %1
-      .line
-      jmp loop
-    end: 
-      halt
+      .ascii "What is your name? "
+    greet:
+      .ascii "Hello, "
+    exclaim:
+      .ascii "!"
 
     print:
-      mov %1 [%0]
-      jz %1 done_print
-      .char %1
-      add %0 %0 1
+      ld %b [%a]
+      jz %b done_print
+      .char %b
+      add %a 1
       jmp print
     done_print:
-      ret %a
+      ret %0
+
+    .main
+      ld %a prompt
+      proc %0 print
+      ld %a 0xA0
+      .string %a
+      ld %a greet
+      proc %0 print
+      ld %a 0xA0
+      proc %0 print
+      ld %a exclaim
+      proc %0 print
+      .line
+      halt
     """
 )
 

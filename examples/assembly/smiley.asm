@@ -2,34 +2,34 @@ prompt:
   .ascii "How are you feeling (1: happy, 2: neutral, 3: sad)? "
 
 .main
-  mov %0 prompt
+  load %0 prompt
 loop_prompt:
-  mov %1 [%0]
+  load %1 [%0]
   jz %1 done_prompt
   .char %1
-  add %0 %0 1
+  add %0 1
   jmp loop_prompt
 done_prompt:
   .input %0
-  and %0 %0 0x000F
+  and %0 0x000F
   jp %0 okay
   halt
 okay:
   .line
-  sub %0 %0 1
-  mov %a happy
-  mov %b 16
+  sub %0 1
+  load %a happy
+  load %b 16
 find_face:
   jz %0 draw_face
-  add %a %a 16
-  sub %0 %0 1
+  add %a 16
+  sub %0 1
   jmp find_face
 draw_face:
   jz %b end
-  mov %c [%a]
+  load %c [%a]
   .pattern %c
-  add %a %a 1
-  sub %b %b 1
+  add %a 1
+  sub %b 1
   jmp draw_face
 end:
   .line

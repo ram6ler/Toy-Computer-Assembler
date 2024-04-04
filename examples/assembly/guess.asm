@@ -18,60 +18,60 @@ correct_2:
   .ascii " moves! Great job!"
   
 print:
-  mov %c [%a]
+  load %c [%a]
   jz %c done_print
   .char %c
-  add %a %a 1
+  add %a 1
   jmp print
 done_print:
   ret %b
 
 .main
-  mov %a intro_1
+  load %a intro_1
   proc %b print
   .line
-  mov %a intro_2
+  load %a intro_2
   proc %b print
   .line
-  mov %a intro_3
+  load %a intro_3
   proc %b print
   .line
   .rand %0
-  and %0 %0 0x00FF
-  mov %1 0
+  and %0 0x00FF
+  load %1 0
 loop:
-  add %1 %1 1
-  mov %a guess
+  add %1 1
+  load %a guess
   proc %b print
   .den %1
   .line
-  mov %a prompt
+  load %a prompt
   proc %b print
   .input %2
   xor %3 %0 %2
   jz %3 if_correct
-  mov %4 %0
+  move %4 %0
 compare:
-  sub %2 %2 1
+  sub %2 1
   jz %2 if_too_low
-  sub %4 %4 1
+  sub %4 1
   jz %4 if_too_high
   jmp compare
 if_too_low:
-  mov %a too_low
+  load %a too_low
   proc %b print
   .line
   jmp loop
 if_too_high:
-  mov %a too_high
+  load %a too_high
   proc %b print
   .line
   jmp loop
 if_correct:
-  mov %a correct_1
+  load %a correct_1
   proc %b print
   .den %1
-  mov %a correct_2
+  load %a correct_2
   proc %b print
   .line
   halt

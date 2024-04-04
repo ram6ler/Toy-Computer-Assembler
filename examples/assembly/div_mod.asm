@@ -1,46 +1,46 @@
 p:
-  .ascii "  Input p: "
+  .ascii "  Numerator: "
 d:
-  .ascii "  Input d: "
+  .ascii "Denominator: "
 q:
-  .ascii " Quotient: "
+  .ascii "   Quotient: "
 r:
-  .ascii "Remainder: "
+  .ascii "  Remainder: "
 
 print:
-  mov %5 [%8]
+  load %5 [%8]
   jz %5 done_print
   .char %5
-  add %8 %8 %1
+  add %8 %1
   jmp print
 done_print:
   ret %9
 
 .main
-  mov %1 1
-  mov %8 p
+  load %1 1
+  load %8 p
   proc %9 print
   .input %a
-  mov %8 d
+  load %8 d
   proc %9 print
   .input %b
-  mov %c 0
-  mov %d 0
+  load %c 0
+  load %d 0
 loop:
   jz %a done
-  sub %a %a %1
-  add %d %d %1
+  sub %a %1
+  add %d %1
   xor %0 %d %b
   jp %0 loop
-  add %c %c %1
-  mov %d 0
+  add %c %1
+  load %d 0
   jmp loop
 done:
-  mov %8 q
+  load %8 q
   proc %9 print
   .den %c
   .line
-  mov %8 r
+  load %8 r
   proc %9 print
   .den %d
   .line
