@@ -112,7 +112,8 @@ class ToyComputer:
 
     def step(self) -> bool:
         """
-        Performs a single fetch-decode-execute cycle.
+        Performs a single fetch-decode-execute cycle. Returns whether
+        there are steps remaining.
         """
 
         def store(memory_address: int, register_address: int) -> None:
@@ -355,6 +356,6 @@ class ToyComputer:
         result += f"\n{pad("PC:")}{pad(hex(self.pc)[2:].rjust(2, "0"))}"
         ir = self.memory[self.pc]
         result += f"{pad("IR:")}{pad(hex(ir)[2:].rjust(4, "0"))} {ToyComputer.as_pseudocode(self.memory[self.pc])}"
-        result += "\n\n"
+        result += "\n"
 
         return result
