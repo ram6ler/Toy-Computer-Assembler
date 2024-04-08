@@ -3,6 +3,9 @@ from .exception import ToyException
 
 
 def readInteger() -> int:
+    """
+    Inputs an binary, octal, denary or hexadecimal integer.
+    """
     while True:
         result = input()
         if len(result) > 2:
@@ -38,10 +41,51 @@ def make_byte(x: int) -> str:
 
 
 class ToyComputer:
+    """
+    A simple, educational virtual computer based on the specifications
+    of an imaginary computer presented in chapter 6 of:
+
+      Sedgewick, R. & Wayne, K. (2017)
+      Computer Science: An Interdisciplinary Approach.
+
+    The computer has a word size of two bytes, 16 general purpose
+    registers and 256 addressable words in memory.
+
+    The instruction is interpreted as four nibbles `OP D S T` or two
+    nibbles and a byte `OP D ADDR` for the following machine instruction set:
+
+    ```txt
+        OP Instruction     Effect
+        0 Halt            -
+        1 Add             R[D] <- R[S] + R[T]
+        2 Subtract        R[D] <- R[S] - R[T]
+        3 Bitwise And     R[D] <- R[S] & R[T]
+        4 Bitwise Xor     R[D] <- R[S] ^ R[T]
+        5 Left Shift      R[D] <- R[S] << R[T]
+        6 Right Shift     R[D] <- R[S] >> R[T]
+        7 Load Address    R[D] <- ADDR
+        8 Load            R[D] <- M[ADDR]
+        9 Store           M[ADDR] <- R[D]
+        A Load Indirect   R[D] <- M[R[T]]
+        B Store Indirect  M[R[T]] <- R[D]
+        C Branch Zero     if R[D] == 0 PC <- ADDR
+        D Branch Positive if R[D] > 0 PC <- ADDR
+        E Jump Register   PC <- R[D]
+        F Jump & Link     R[D] <- PC; PC <- ADDR
+    ```
+    """
+
     def __init__(self) -> None:
         self.registers = [0 for _ in range(0x10)]
         self.memory = [0 for _ in range(0x100)]
         self.pc = 0
+
+    @property
+    def ir(self) -> int:
+        """
+        The current instruction.
+        """
+        return self.memory[self.pc]
 
     @staticmethod
     def decode(instruction: int) -> tuple[int, int, int, int, int]:
@@ -59,35 +103,41 @@ class ToyComputer:
     @staticmethod
     def as_pseudocode(instruction: int) -> str:
         """
-        Returns a pseudocode description of an instruction value.
+        Returns a pseudocode representation of an instruction value.
         """
         op, d, s, t, addr = ToyComputer.decode(instruction)
         match op:
             case 0x0:
-                return "-"
+                return ""
             case 0x1:
                 return (
-                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] + R[{make_nibble(t)}]"
+                    f"R[{make_nibble(d)}] <- "
+                    f"R[{make_nibble(s)}] + R[{make_nibble(t)}]"
                 )
             case 0x2:
                 return (
-                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] - R[{make_nibble(t)}]"
+                    f"R[{make_nibble(d)}] <- "
+                    f"R[{make_nibble(s)}] - R[{make_nibble(t)}]"
                 )
             case 0x3:
                 return (
-                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] & R[{make_nibble(t)}]"
+                    f"R[{make_nibble(d)}] <- "
+                    f"R[{make_nibble(s)}] & R[{make_nibble(t)}]"
                 )
             case 0x4:
                 return (
-                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] ^ R[{make_nibble(t)}]"
+                    f"R[{make_nibble(d)}] <- "
+                    f"R[{make_nibble(s)}] ^ R[{make_nibble(t)}]"
                 )
             case 0x5:
                 return (
-                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] << R[{make_nibble(t)}]"
+                    f"R[{make_nibble(d)}] <- "
+                    f"R[{make_nibble(s)}] << R[{make_nibble(t)}]"
                 )
             case 0x6:
                 return (
-                    f"R[{make_nibble(d)}] <- R[{make_nibble(s)}] >> R[{make_nibble(t)}]"
+                    f"R[{make_nibble(d)}] <- "
+                    f"R[{make_nibble(s)}] >> R[{make_nibble(t)}]"
                 )
             case 0x7:
                 return f"R[{make_nibble(d)}] <- {make_nibble(addr)}"
@@ -113,7 +163,7 @@ class ToyComputer:
     def step(self) -> bool:
         """
         Performs a single fetch-decode-execute cycle. Returns whether
-        there are steps remaining.
+        there are non halting steps remaining.
         """
 
         def store(memory_address: int, register_address: int) -> None:
@@ -243,10 +293,17 @@ class ToyComputer:
 
     def run(self) -> None:
         """
-        Repeats load-decode-execute cycle until halt is encountered.
+        Repeats fetch-decode-execute cycle until halt is encountered.
         """
         while self.step():
             pass
+
+    def clear(self) -> None:
+        for i, _ in enumerate(self.memory):
+            if i < 0x10:
+                self.registers[i] = 0
+            self.memory[i] = 0
+            self.pc = 0
 
     def set_state(
         self,
@@ -290,8 +347,8 @@ class ToyComputer:
             if (result := line.split(";")[0].lower().strip())
         ]
         for line in lines:
-            addr, instruction = line.split(":")
             try:
+                addr, instruction = line.split(":")
                 if addr == "pc":
                     pc = int(instruction, base=0x10)
                 elif addr[0] == "r":
@@ -314,20 +371,20 @@ class ToyComputer:
         def column(x: str, width=18):
             return x.rjust(width)
 
-        result = column(f"PC: {hex(self.pc)[2:].rjust(2, "0")}") + "\n"
+        result = f"\nPC: {hex(self.pc)[2:].rjust(2, "0")}\n"
         for i, v in enumerate(self.registers):
             if v:
-                result += column(f"R{hex(i)[2:]}: {hex(v)[2:].rjust(4, "0")}\n")
-        result += f"{column(";;")}{column("Character")}{column("Decimal")}{column("Binary")}{column("Instruction", 25)}\n"
+                result += f"R{hex(i)[2:]}: {hex(v)[2:].rjust(4, "0")}\n"
         for i, v in enumerate(self.memory):
             if v:
                 result += (
-                    column(f"{hex(i)[2:].rjust(2, "0")}: {hex(v)[2:].rjust(4, "0")};")
-                    + column(f"'{chr(v)}'" if 0x20 <= v <= 0x7F else "-")
-                    + column(str(v))
+                    column(f"{hex(i)[2:].rjust(2, "0")}:", 3)
+                    + column(f"{hex(v)[2:].rjust(4, "0")};", 6)
+                    + column(str(v), 6)
                     + column(bin(v)[2:].rjust(16, "0"))
+                    + column(f"'{chr(v)}'" if 0x20 <= v <= 0x7F else "", 5)
                     + column(ToyComputer.as_pseudocode(v), 25)
-                    + (" <-----" if self.pc == i else "")
+                    + ("  (*)" if self.pc == i else "")
                     + "\n"
                 )
         return result
@@ -353,9 +410,12 @@ class ToyComputer:
                 index = r * 0x10 + c
                 result += pad(hex(self.memory[index])[2:].rjust(4, "0"))
             result += "\n"
-        result += f"\n{pad("PC:")}{pad(hex(self.pc)[2:].rjust(2, "0"))}"
+        result += f"\n  {pad("PC:")}{pad(hex(self.pc)[2:].rjust(2, "0"))}\n"
         ir = self.memory[self.pc]
-        result += f"{pad("IR:")}{pad(hex(ir)[2:].rjust(4, "0"))} {ToyComputer.as_pseudocode(self.memory[self.pc])}"
-        result += "\n"
+        pseudo = ToyComputer.as_pseudocode(self.memory[self.pc])
+        result += (
+            f"  {pad("IR:")}{pad(hex(ir)[2:].rjust(4, "0"))}\n"
+            f"Pseudo: {pseudo if pseudo else "halt"}\n"
+        )
 
         return result

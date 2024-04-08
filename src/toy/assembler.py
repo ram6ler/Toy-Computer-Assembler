@@ -47,7 +47,8 @@ expressions = {
     "load d la": compile(f"^ld{pat("register")}{pat("at_label")}$"),
     "load d p": compile(f"^ld{pat("register")}{pat("at_register")}$"),
     "store d la": compile(f"^st{pat("at_address")}{pat("register")}$"),
-    "store p d": compile(f"^st{pat("at_register")}{pat("register")}$"),
+    "store p s": compile(f"^st{pat("at_register")}{pat("register")}$"),
+    "store la s": compile(f"^st{pat("at_label")}{pat("register")}$"),
     "move d s": compile(f"^mov{pat("register") * 2}$"),
     "jz d a": compile(f"^jz{pat("register")}{pat("value")}$"),
     "jz d l": compile(f"^jz{pat("register")}{pat("label")}$"),
@@ -328,7 +329,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             addresses[label].append(len(machine_code))
             machine_code.append(
                 # R[d] <- M[??]
-                0xA000 | (d << 8),
+                0x8000 | (d << 8),
             )
             continue
 
@@ -355,13 +356,26 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["store p d"].match(line)
+        m = expressions["store p s"].match(line)
         if m:
             p = parse_register(m.group(1))
             s = parse_register(m.group(2))
             machine_code.append(
                 # M[R[p]] <- s
                 0xB000 | (s << 8) | p,
+            )
+            continue
+
+        m = expressions["store la s"].match(line)
+        if m:
+            label = m.group(1)
+            s = parse_register(m.group(2))
+            if label not in addresses:
+                addresses[label] = []
+            addresses[label].append(len(machine_code))
+            machine_code.append(
+                # M[??] <- R[s]
+                0x9000 | (s << 8),
             )
             continue
 
