@@ -96,7 +96,7 @@ loop_main:
   ld %1 [h_north]
   ld %2 [g_north]
   proc %0 compare
-  mov %1 %3
+  mv %1 %3
   proc %0 print
 
   ld %a d_east
@@ -104,7 +104,7 @@ loop_main:
   ld %1 [h_east]
   ld %2 [g_east]
   proc %0 compare
-  mov %1 %3
+  mv %1 %3
   proc %0 print
 
   .line
@@ -133,10 +133,10 @@ not_equal:
   sub %2 1
   jmp not_equal
 more:
-  mov %3 %a
+  mv %3 %a
   ret %0
 less:
-  mov %3 %b
+  mv %3 %b
   ret %0  
 
 print:

@@ -50,7 +50,7 @@ loop:
   .input %2
   xor %3 %0 %2
   jz %3 if_correct
-  mov %4 %0
+  mv %4 %0
 compare:
   sub %2 1
   jz %2 if_too_low

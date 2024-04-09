@@ -49,7 +49,7 @@ expressions = {
     "store d la": compile(f"^st{pat("at_address")}{pat("register")}$"),
     "store p s": compile(f"^st{pat("at_register")}{pat("register")}$"),
     "store la s": compile(f"^st{pat("at_label")}{pat("register")}$"),
-    "move d s": compile(f"^mov{pat("register") * 2}$"),
+    "move d s": compile(f"^mv{pat("register") * 2}$"),
     "jz d a": compile(f"^jz{pat("register")}{pat("value")}$"),
     "jz d l": compile(f"^jz{pat("register")}{pat("label")}$"),
     "jp d a": compile(f"^jp{pat("register")}{pat("value")}$"),
