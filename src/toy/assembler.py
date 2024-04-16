@@ -116,7 +116,7 @@ def parse_value(v: str) -> int:
     return int(v, base)
 
 
-def assemble(code: str) -> tuple[int, list[int]]:
+def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
     machine_code = list[int]()
     pc = 0
     lines = [
@@ -631,8 +631,9 @@ def assemble(code: str) -> tuple[int, list[int]]:
         else:
             raise ToyException(f"Unrecognized label: '{label}'")
 
-    print("\nAddress Mappings:\n")
-    for label, v in labels.items():
-        print(f"  {label}: {hex(v)[2:].rjust(2, "0")}")
-    print()
+    if show_addresses:
+        print("\nAddress Mappings:\n")
+        for label, v in labels.items():
+            print(f"  {label}: {hex(v)[2:].rjust(2, "0")}")
+        print()
     return pc, machine_code

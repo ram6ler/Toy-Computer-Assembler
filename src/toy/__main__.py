@@ -286,7 +286,7 @@ if __name__ == "__main__":
 
         computer = ToyComputer()
         if ".asm" in argv[1]:
-            pc, ram = assemble(code)
+            pc, ram = assemble(code, show_addresses=False)
             computer.set_state(pc, ram)
         else:
             computer.compile_machine_language(code)
