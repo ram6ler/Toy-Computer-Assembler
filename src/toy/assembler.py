@@ -230,7 +230,6 @@ def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
             continue
 
         m = expressions["not d t"].match(line)
-        print("NOT D T")
         if m:
             d = parse_register(m.group(1))
             s = parse_register(m.group(2))
@@ -247,7 +246,6 @@ def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
             continue
 
         m = expressions["not d v"].match(line)
-        print("NOT D V")
         if m:
             d = parse_register(m.group(1))
             v = parse_value(m.group(2))
