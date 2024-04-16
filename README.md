@@ -122,8 +122,8 @@ Comments begin with two semicolons `;;`.
 |jp *d* *l*|jp %0 end|Jumps to address marked by label *l* if value in register *d* is positive.|
 |jmp *a*|jmp 0xA0|Jumps to address *a*.|
 |jmp *l*|jmp loop|Jumps to address marked by label *l*.|
-|proc *d* *a*|proc %0 0xA0|Stores current position to register *d* and jumps to address *a*.|
-|proc *d* *l*|proc %0 print|Stores current position to register *d* and jumps to address marked by label *l*.|
+|call *d* *a*|call %0 0xA0|Stores current position to register *d* and jumps to address *a*.|
+|call *d* *l*|call %0 print|Stores current position to register *d* and jumps to address marked by label *l*.|
 |ret *d*|ret %0|Jumps to address in register *d*.|
 
 ### Moving Data
@@ -348,15 +348,15 @@ done_print:
 
 .main
   ld %a prompt
-  proc %0 print
+  call %0 print
   ld %a 0xA0
   .string %a
   ld %a greet
-  proc %0 print
+  call %0 print
   ld %a 0xA0
-  proc %0 print
+  call %0 print
   ld %a exclaim
-  proc %0 print
+  call %0 print
   .line
   halt
 
@@ -564,15 +564,15 @@ pc, ram = assemble(
 
     .main
       ld %a prompt
-      proc %0 print
+      call %0 print
       ld %a 0xA0
       .string %a
       ld %a greet
-      proc %0 print
+      call %0 print
       ld %a 0xA0
-      proc %0 print
+      call %0 print
       ld %a exclaim
-      proc %0 print
+      call %0 print
       .line
       halt
     """

@@ -56,8 +56,8 @@ expressions = {
     "jp d l": compile(f"^jp{pat("register")}{pat("label")}$"),
     "jmp a": compile(f"^jmp{pat("value")}$"),
     "jmp l": compile(f"^jmp{pat("label")}$"),
-    "proc d a": compile(f"^proc{pat("register")}{pat("value")}$"),
-    "proc d l": compile(f"^proc{pat("register")}{pat("label")}$"),
+    "call d a": compile(f"^call{pat("register")}{pat("value")}$"),
+    "call d l": compile(f"^call{pat("register")}{pat("label")}$"),
     "ret d": compile(f"^ret{pat("register")}$"),
     # Special
     ".main": compile(r"^\.main$"),
@@ -150,12 +150,19 @@ def assemble(code: str) -> tuple[int, list[int]]:
 
         m = expressions[".ascii"].match(line)
         if m:
-            machine_code.extend(
-                [
-                    *[ord(c) & 0xFFFF for c in m.group(1)],
-                    0,
-                ]
-            )
+
+            def append_ascii(string: str) -> None:
+                if string:
+                    if len(string) > 2 and string[:2] == r"\0":
+                        machine_code.append(0)
+                        append_ascii(string[2:])
+                    else:
+                        first, rest = string[0], string[1:]
+                        machine_code.append(ord(first) & 0xFF)
+                        append_ascii(rest)
+
+            append_ascii(m.group(1))
+            machine_code.append(0)
             continue
 
         for special, addr in {
@@ -454,7 +461,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["proc d a"].match(line)
+        m = expressions["call d a"].match(line)
         if m:
             d = parse_register(m.group(1))
             addr = parse_value(m.group(2))
@@ -464,7 +471,7 @@ def assemble(code: str) -> tuple[int, list[int]]:
             )
             continue
 
-        m = expressions["proc d l"].match(line)
+        m = expressions["call d l"].match(line)
         if m:
             d = parse_register(m.group(1))
             label = m.group(2)
@@ -624,4 +631,8 @@ def assemble(code: str) -> tuple[int, list[int]]:
         else:
             raise ToyException(f"Unrecognized label: '{label}'")
 
+    print("\nAddress Mappings:\n")
+    for label, v in labels.items():
+        print(f"  {label}: {hex(v)[2:].rjust(2, "0")}")
+    print()
     return pc, machine_code

@@ -1,5 +1,5 @@
 prompt:
-  .ascii "How are you feeling (1: happy, 2: neutral, 3: sad)? "
+  .ascii "How are you feeling today (1: happy, 2: neutral, 3: sad)? "
 
 .main
   ld %0 prompt
@@ -11,7 +11,7 @@ loop_prompt:
   jmp loop_prompt
 done_prompt:
   .input %0
-  and %0 0x000F
+  and %0 0x0003
   jp %0 okay
   halt
 okay:

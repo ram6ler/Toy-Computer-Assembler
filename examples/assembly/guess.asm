@@ -28,13 +28,13 @@ done_print:
 
 .main
   ld %a intro_1
-  proc %b print
+  call %b print
   .line
   ld %a intro_2
-  proc %b print
+  call %b print
   .line
   ld %a intro_3
-  proc %b print
+  call %b print
   .line
   .rand %0
   and %0 0x00FF
@@ -42,11 +42,11 @@ done_print:
 loop:
   add %1 1
   ld %a guess
-  proc %b print
+  call %b print
   .den %1
   .line
   ld %a prompt
-  proc %b print
+  call %b print
   .input %2
   xor %3 %0 %2
   jz %3 if_correct
@@ -59,19 +59,19 @@ compare:
   jmp compare
 if_too_low:
   ld %a too_low
-  proc %b print
+  call %b print
   .line
   jmp loop
 if_too_high:
   ld %a too_high
-  proc %b print
+  call %b print
   .line
   jmp loop
 if_correct:
   ld %a correct_1
-  proc %b print
+  call %b print
   .den %1
   ld %a correct_2
-  proc %b print
+  call %b print
   .line
   halt

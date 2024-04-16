@@ -11,4 +11,10 @@ dist/
 .dmypy.json
 dmypy.json
 
+# vs code
+.vscode/
+
+# scratch
 *play*
+
+.DS_Store

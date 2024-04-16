@@ -195,7 +195,7 @@ class ToyComputer:
                         bin(self.registers[register_address])[2:]
                         .replace("0", " ")
                         .replace("1", "█")
-                        .rjust(16)
+                        .rjust(16, " ")
                     )
                 case 0xF8:
                     # dump
@@ -203,8 +203,12 @@ class ToyComputer:
                 case 0xF9:
                     # state
                     print(f"\n{self.state_to_machine_language()}")
-                case _:
+                case _ if memory_address < 0x100:
                     self.memory[memory_address] = self.registers[register_address]
+                case _:
+                    raise ToyException(
+                        f"Trying to store to address {hex(memory_address)[2:]}..."
+                    )
 
         def load(memory_address: int, register_address: int) -> None:
             """
@@ -226,9 +230,13 @@ class ToyComputer:
                             self.memory[address] = v
                         else:
                             break
-                case _:
+                case _ if memory_address < 0x100:
                     # R[d] <- M[addr]
                     self.registers[register_address] = self.memory[memory_address]
+                case _:
+                    raise ToyException(
+                        f"Trying to load from address {hex(memory_address)[2:]}..."
+                    )
 
         ir = self.memory[self.pc]
         op, d, s, t, addr = ToyComputer.decode(ir)
@@ -240,24 +248,22 @@ class ToyComputer:
                 self.pc -= 1
             case 0x1:
                 # R[D] <- R[S] + R[T]
-                self.registers[d] = self.registers[s] + self.registers[t]
+                self.registers[d] = (self.registers[s] + self.registers[t]) % 0x10000
             case 0x2:
                 # R[D] <- R[S] - R[T]
-                self.registers[d] = self.registers[s] - self.registers[t]
+                self.registers[d] = (self.registers[s] - self.registers[t]) % 0x10000
             case 0x3:
                 # R[D] <- R[S] & R[T]
-                self.registers[d] = self.registers[s] & self.registers[t]
+                self.registers[d] = (self.registers[s] & self.registers[t]) & 0xFFFF
             case 0x4:
                 # R[D] <- R[S] ^ R[T]
-                self.registers[d] = (self.registers[s] & 0xFFFF) ^ (
-                    self.registers[t] & 0xFFFF
-                )
+                self.registers[d] = (self.registers[s] ^ self.registers[t]) & 0xFFFF
             case 0x5:
                 # R[D] <- R[S] << R[T]
-                self.registers[d] = self.registers[s] << self.registers[t]
+                self.registers[d] = (self.registers[s] << self.registers[t]) & 0xFFFF
             case 0x6:
                 # R[D] <- R[S] >> R[T]
-                self.registers[d] = self.registers[s] >> self.registers[t]
+                self.registers[d] = (self.registers[s] >> self.registers[t]) & 0xFFFF
             case 0x7:
                 # R[D] <- addr
                 self.registers[d] = addr

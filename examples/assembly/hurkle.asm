@@ -19,7 +19,7 @@ d_south:
 d_none:
   .word
 clue:
-  .ascii "Go: "
+  .ascii "Go "
 end_1:
   .ascii "You found it in "
 end_2:
@@ -38,44 +38,44 @@ g_north:
 
 .main
   ld %1 start_1
-  proc %0 print
+  call %0 print
   .line
   ld %1 start_2
-  proc %0 print
+  call %0 print
   .line
 
   ld %1 h_east
-  proc %0 random
+  call %0 random
   ld %1 h_north
-  proc %0 random
+  call %0 random
   ld %1 0
   st [g_number] %1
 
 loop_main:
   .line
   ld %1 guess_1
-  proc %0 print
-  proc %0 inc_guess
+  call %0 print
+  call %0 inc_guess
   .den %1
   .line
 
   ld %1 guess_2
-  proc %0 print
+  call %0 print
   ld %1 d_east
-  proc %0 print
+  call %0 print
   ld %1 guess_3
-  proc %0 print
+  call %0 print
   ld %1 g_east
-  proc %0 input
+  call %0 input
 
   ld %1 guess_2
-  proc %0 print
+  call %0 print
   ld %1 d_north
-  proc %0 print
+  call %0 print
   ld %1 guess_3
-  proc %0 print
+  call %0 print
   ld %1 g_north
-  proc %0 input
+  call %0 input
 
   ld %2 [h_north]
   lsh %2 4
@@ -89,23 +89,23 @@ loop_main:
   jz %4 success
 
   ld %1 clue
-  proc %0 print
+  call %0 print
 
   ld %a d_north
   ld %b d_south
   ld %1 [h_north]
   ld %2 [g_north]
-  proc %0 compare
+  call %0 compare
   mv %1 %3
-  proc %0 print
+  call %0 print
 
   ld %a d_east
   ld %b d_west
   ld %1 [h_east]
   ld %2 [g_east]
-  proc %0 compare
+  call %0 compare
   mv %1 %3
-  proc %0 print
+  call %0 print
 
   .line
   jmp loop_main
@@ -113,11 +113,11 @@ loop_main:
 success:
   .line
   ld %1 end_1
-  proc %0 print
+  call %0 print
   ld %1 [g_number]
   .den %1
   ld %1 end_2
-  proc %0 print
+  call %0 print
   .line
   halt
 
