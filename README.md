@@ -138,7 +138,7 @@ Comments begin with two semicolons `;;`.
 |st *a* *s*|st [0xA0] %0|Stores value in register *s* to address *a*.|
 |st *p* *s*|st [%0] %1|Stores value in register *s* to address in register *p*.|
 |st *l* *s*|st x %1|Stores value in register *s* to address marked by label *l*.|
-|mv *d* *s*|move %0 %1|Moves (copies) value in register *s* to register *d*.|
+|mv *d* *s*|mv %0 %1|Moves (copies) value in register *s* to register *d*.|
 
 ### Operations
 

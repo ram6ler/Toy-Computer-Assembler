@@ -230,6 +230,7 @@ def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
             continue
 
         m = expressions["not d t"].match(line)
+        print("NOT D T")
         if m:
             d = parse_register(m.group(1))
             s = parse_register(m.group(2))
@@ -240,23 +241,24 @@ def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
                         0xFFFF,
                     ),
                     # R[d] <- R[s] ^ R[E]
-                    0x4000 | (d << 8) | (s << 4),
+                    0x400E | (d << 8) | (s << 4),
                 ]
             )
             continue
 
         m = expressions["not d v"].match(line)
+        print("NOT D V")
         if m:
             d = parse_register(m.group(1))
             v = parse_value(m.group(2))
             if v <= 0xFF:
                 machine_code.append(
-                    # R[F] <- v
-                    0x7F00 | v,
+                    # R[D] <- v
+                    0x7D00 | v,
                 )
             else:
                 machine_code.extend(
-                    store_word_to(0xF, v),
+                    store_word_to(0xD, v),
                 )
 
             machine_code.extend(
@@ -265,8 +267,8 @@ def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
                         0xE,
                         0xFFFF,
                     ),
-                    # R[d] <- R[F] ^ R[E]
-                    0x40FE | (d << 8),
+                    # R[d] <- R[D] ^ R[E]
+                    0x40DE | (d << 8),
                 ]
             )
             continue
