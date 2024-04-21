@@ -9,13 +9,14 @@ if __name__ == "__main__":
     def banner():
         print(
             r"""
+ 
        _____
-      |_   _|__ _  _
-        | |/ _ \ || |
-        |_|\___/\_, |
-     ___        |__/         _
-    / __|___ _ __  _ __ _  _| |_ ___ _ _
-   | (__/ _ \ '  \| '_ \ || |  _/ -_) '_|
+      |_   _|__ _  _ 
+ .------| |/ _ \ || |---------------------.
+ |      |_|\___/\_, |                     |
+ |   ___        |__/         _            |
+ |  / __|___ _ __  _ __ _  _| |_ ___ _ _  |
+ '-| (__/ _ \ '  \| '_ \ || |  _/ -_) '_|-'
     \___\___/_|_|_| .__/\_,_|\__\___|_|
                   |_|         Pre-alpha"""
         )
@@ -27,8 +28,6 @@ if __name__ == "__main__":
         banner()
         print()
         loaded_path = ""
-        # loaded_program = ""
-        # loaded_type = ""
         previous_step = ""
         repeat_previous_step = False
         original_pc = 0
@@ -49,9 +48,11 @@ if __name__ == "__main__":
                     pc, ram = assemble(program)
                     computer.set_state(pc, ram)
                     print(f"Compiled {path} as assembly.")
+                    print(f"Program counter: {hex(computer.pc)[2:].rjust(2, "0")}")
                 else:
                     computer.compile_machine_language(program)
                     print(f"Compiled {path} as machine language.")
+                    print(f"Program counter: {hex(computer.pc)[2:].rjust(2, "0")}")
 
                 original_pc = computer.pc
                 loaded_path = path
@@ -60,6 +61,20 @@ if __name__ == "__main__":
                 print("* Error:")
                 print(e.message)
                 return False
+
+        def run_program():
+            lineate("Run Started")
+            try:
+                computer.run()
+                print()
+                lineate("Run Ended")
+            except KeyboardInterrupt:
+                print()
+                lineate("* Interrupted")
+            except ToyException as e:
+                print()
+                print("* Error")
+                print(e.message)
 
         while True:
             if repeat_previous_step:
@@ -70,7 +85,7 @@ if __name__ == "__main__":
             match split(r" +", instruction):
                 case ["help"] | ["h"]:
                     print(
-                        """
+                        r"""
       To use:
 
         help (h)            Display this help message.
@@ -83,17 +98,13 @@ if __name__ == "__main__":
                             is assumed to be assembly.) If no path is
                             provided, re-compile loaded file.
 
-        code (c)            Output the loaded assembly or machine language.
-
-        reset (p)           Reset the program counter to its original position.
-
         run (r)             Run the program from the current position.
 
         dump (d) [p]        Output the memory and register data. If a path is
                             added, save dump to path p.
 
-        machine (m)         Output the current state as machine language. (If
-                            a path is added, save machine language to file.)
+        machine (m) [p]     Output the current state as machine language. If
+                            a path is added, save machine language to path p.
 
         step (s)            Step through one fetch-decode-execute cycle. (If
                             dump (d) or machine (m) are added, the step is
@@ -101,8 +112,10 @@ if __name__ == "__main__":
 
         repeat (.)          Repeat previous step instruction.
 
-        [a] [i]             Write two-byte value i to one-byte memory address a.
-                            Both a and i are expected to be in hexadecimal.
+        {addr} {val}        Write value val to one-byte memory address addr.
+                            Both addr and val are expected to be in hexadecimal.
+
+        pc {addr}           Set the program counter to address addr.
 
         clear (x)           Clear computer memory.
 
@@ -138,36 +151,20 @@ if __name__ == "__main__":
                     else:
                         print("No program loaded...")
 
-                case ["code"] | ["c"]:
-                    if loaded_path:
-                        try:
-                            print()
-                            with open(loaded_path) as f:
-                                print(f.read())
-                        except FileNotFoundError:
-                            print(f"Cannot find '{loaded_path}'...")
-                    else:
-                        print("No file loaded...")
-
                 case ["run"] | ["r"]:
                     if computer.ir:
-                        lineate("Run Started")
-                        try:
-                            computer.run()
-                            print()
-                            lineate("Run Ended")
-                        except KeyboardInterrupt:
-                            print()
-                            lineate("* Interrupted")
-
+                        run_program()
                     else:
-                        print("Program completed.")
-
-                case ["reset"] | ["p"]:
-                    computer.pc = original_pc
-                    print(
-                        f"Program counter reset to {hex(original_pc)[2:].rjust(2, "0")}."
-                    )
+                        if loaded_path:
+                            reload = input(
+                                "Current instruction: halt. Reload program (y/n)? "
+                            )
+                            if reload and reload[0].lower() == "y":
+                                print(f"Attempting reload: {loaded_path}")
+                                if load_path(loaded_path):
+                                    run_program()
+                        else:
+                            print("No program loaded...")
 
                 case ["clear"] | ["x"]:
                     loaded_path = ""
@@ -179,14 +176,18 @@ if __name__ == "__main__":
 
                 case ["step", *rest] | ["s", *rest]:
                     s_pc = hex(computer.pc)[2:].rjust(2, "0")
-                    s_cir = hex(computer.memory[computer.pc])[2:].rjust(4, "0")
-                    pseudo = ToyComputer.as_pseudocode(computer.memory[computer.pc])
-                    print(f"PC: 0x{s_pc} CIR: 0x{s_cir} Pseudocode: {pseudo}")
+                    s_cir = hex(computer.ir)[2:].rjust(4, "0")
+                    pseudo = ToyComputer.as_pseudocode(computer.ir)
+                    print(
+                        f"PC: 0x{s_pc} CIR: 0x{s_cir} "
+                        f"Pseudocode: {pseudo if pseudo else "halt"}"
+                    )
                     lineate("Step Started")
                     try:
                         more_steps = computer.step()
                         if not more_steps:
                             print("(Program complete.)")
+                        else:
                             print()
                             lineate("Step Ended")
                             if "dump" in rest or "d" in rest:

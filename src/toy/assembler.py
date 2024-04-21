@@ -116,14 +116,44 @@ def parse_value(v: str) -> int:
     return int(v, base)
 
 
+def pieces(line: str, splitter: str) -> list[str]:
+    """Splits by splitter if splitter not part of a string."""
+    result = list[str]()
+    split = True
+    start = 0
+    for i, c in enumerate(line):
+        if c == '"':
+            split = not split
+            continue
+        if split and c == splitter:
+            result.append(line[start:i].strip())
+            start = i + 1
+    else:
+        result.append(line[start : len(line)].strip())
+    return result
+
+
 def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
     machine_code = list[int]()
     pc = 0
-    lines = [
+    lines = list[str]()
+
+    for line in [
         stripped
         for line in code.split("\n")
-        if (stripped := line.split(";;")[0].strip())
-    ]
+        if (stripped := pieces(line, ";")[0].strip())
+    ]:
+        if ":" in line:
+            try:
+                label, content = pieces(line, ":")
+                lines.append(label.strip() + ":")
+                if content.strip():
+                    lines.append(content.strip())
+            except ValueError:
+                raise ToyException(f"Label error: {line}")
+        else:
+            lines.append(line)
+
     labels = dict[str, int]()
     addresses = dict[str, list[int]]()
 

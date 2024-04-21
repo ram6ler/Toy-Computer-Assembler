@@ -102,7 +102,7 @@ Programs can also be written in a simple assembly language with the following in
 
 ### Comments
 
-Comments begin with two semicolons `;;`.
+Comments begin with a semicolon.
 
 ### Labels
 
@@ -178,7 +178,7 @@ For the unary operation *not*:
 
 |Instruction|Example|Effect|
 |:--|:--|:--|
-|.rand *d*|.random %0|Stores random value to register *d*.|
+|.rand *d*|.rand %0|Stores random value to register *d*.|
 |.input *d*|.input %0|Stores input value to register *d*.|
 |.string *d*|.string %0|Stores input string as ascii values to memory starting at address in *d*.|
 
@@ -195,88 +195,84 @@ For the unary operation *not*:
 |.den *s*|.den %0|Outputs value in register *s* as denary.|
 |.hex *s*|.hex %0|Outputs value in register *s* as hexadecimal.|
 
-For example, the file *smiley.asm* contains the following assembly:
+### Notes
+
+* For some assembly instructions, registers D, E and F are used for scratch work; in general, these registers should be avoided.
+
+### Example
+
+For example, the file *hello.asm* contains the following assembly:
 
 ```txt
-prompt:
-  .ascii "How are you feeling (1: happy, 2: neutral, 3: sad)? "
-
-.main
-  ld %0 prompt
-loop_prompt:
-  ld %1 [%0]
-  jz %1 done_prompt
-  .char %1
-  add %0 1
-  jmp loop_prompt
-done_prompt:
-  .input %0
-  and %0 0x000F
-  jp %0 okay
-  halt
-okay:
-  .line
-  sub %0 1
-  ld %a happy
-  ld %b 16
-find_face:
-  jz %0 draw_face
-  add %a 16
-  sub %0 1
-  jmp find_face
-draw_face:
-  jz %b end
-  ld %c [%a]
-  .pattern %c
-  add %a 1
-  sub %b 1
-  jmp draw_face
-end:
-  .line
-  halt
-
-happy:
-  .data 0x07E0, 0x1818, 0x2004, 0x4002
-  .data 0x4812, 0x8811, 0x8001, 0x8001
-  .data 0x8811, 0x8811, 0x8421, 0x43C2
-  .data 0x4002, 0x2004, 0x1818, 0x07E0
-
-neutral:
-  .data 0x07E0, 0x1818, 0x2004, 0x4002
-  .data 0x4002, 0x8811, 0x8811, 0x8001
-  .data 0x8001, 0x8001, 0x8001, 0x4FF2
-  .data 0x4002, 0x2004, 0x1818, 0x07E0
-
-sad:
-  .data 0x07E0, 0x1818, 0x2004, 0x4002
-  .data 0x4422, 0x8C31, 0x8001, 0x9009
-  .data 0x83C1, 0x97E9, 0x87E1, 0x57EA
-  .data 0x47E2, 0x2004, 0x1818, 0x07E0
-
+greet:         .ascii "Hello! What is your name? "
+say:           .ascii "Nice to meet you, "
+exclaim:       .ascii "!"
+mistake:       .ascii "Whoops! I guess I got it backwards!"
+ask:           .ascii "Do you prefer it that way (y/n)? "
+yes:           .ascii "I knew you would!"
+no:            .ascii "Sorry to hear that!"
+bye:           .ascii "Good bye!"
+print:         ld %1 [%0]
+               jz %1 done_print
+               .char %1
+               add %0 1
+               jmp print
+done_print:    ret %a
+               .main
+               ld %0 greet
+               call %a print
+               ld %0 user_input
+               .string %0
+               ld %0 say
+               call %a print
+               ld %0 user_input
+               mv %1 %0
+find_end:      ld %2 [%1]
+               jz %2 found_end
+               add %1 1
+               jmp find_end
+found_end:     ld %2 [%1]
+               .char %2
+               xor %2 %1 %0
+               jz %2 backwards
+               sub %1 1
+               jmp found_end
+backwards:     ld %0 exclaim
+               call %a print
+               .line
+               ld %0 mistake
+               call %a print
+               .line
+               ld %0 ask
+               call %a print
+               ld %0 user_input
+               .string %0
+               ld %0 [user_input]
+               ld %1 0x79
+               xor %2 %1 %0
+               jz %2 user_prefers
+               ld %0 no
+               call %a print
+               jmp end
+user_prefers:  ld %0 yes
+               call %a print
+end:           .line
+               ld %0 bye
+               call %a print
+               .line
+               halt
+user_input:    .word
 ```
 
-When executed, the program asks the user how he or she is feeling and then draws a corresponding picture to the terminal:
+Example run when compiled and executed:
 
 ```txt
-How are you feeling (1: happy, 2: neutral, 3: sad)? 1
-
-     ██████     
-   ██      ██   
-  █          █  
- █            █ 
- █  █      █  █ 
-█   █      █   █
-█              █
-█              █
-█   █      █   █
-█   █      █   █
-█    █    █    █
- █    ████    █ 
- █            █ 
-  █          █  
-   ██      ██   
-     ██████     
-
+Hello! What is your name? Poptart
+Nice to meet you, tratpoP!
+Whoops! I guess I got it backwards!
+Do you prefer it that way (y/n)? y
+I knew you would!
+Good bye!
 ```
 
 ## Installing
@@ -296,7 +292,7 @@ python -m toy fibonacci.mc
 ```
 
 ```txt
-python -m toy smiley.asm
+python -m toy hello.asm
 ```
 
 (The module looks for the substring .asm in the file name to determine how to compile the file.)
@@ -310,170 +306,99 @@ python -m toy
 This opens an interface that allows us to load, run, edit and explore programs. Here is an example session:
 
 ```txt
-
-.------------------------------------------.
-|        _____                             |
-|       |_   _|__ _  _                     |
-|         | |/ _ \ || |                    |
-|         |_|\___/\_, |                    |
-|    ___          |__/       _             |
-|   / __|___ _ __  _ __ _  _| |_ ___ _ _   |
-|  | (__/ _ \ '  \| '_ \ || |  _/ -_) '_|  |
-|   \___\___/_|_|_| .__/\_,_|\__\___|_|    |
-|                 |_|                      |
-|                           Version 0.0.1  |
-'------------------------------------------'
+       _____
+      |_   _|__ _  _ 
+ .------| |/ _ \ || |---------------------.
+ |      |_|\___/\_, |                     |
+ |   ___        |__/         _            |
+ |  / __|___ _ __  _ __ _  _| |_ ___ _ _  |
+ '-| (__/ _ \ '  \| '_ \ || |  _/ -_) '_|-'
+    \___\___/_|_|_| .__/\_,_|\__\___|_|
+                  |_|         Pre-alpha
 
 
  > load examples/assembly/hello.asm
+
+Address Mappings:
+
+  greet: 00
+  say: 1b
+  exclaim: 2e
+  mistake: 30
+  ask: 54
+  yes: 76
+  no: 88
+  bye: 9c
+  print: a6
+  done_print: ad
+  find_end: b7
+  found_end: bd
+  backwards: c5
+  user_prefers: d7
+  end: d9
+  user_input: de
+
 Compiled examples/assembly/hello.asm as assembly.
-
-hello.asm > code
-
-prompt:
-  .ascii "What is your name? "
-greet:
-  .ascii "Hello, "
-exclaim:
-  .ascii "!"
-
-print:
-  ld %b [%a]
-  jz %b done_print
-  .char %b
-  add %a 1
-  jmp print
-done_print:
-  ret %0
-
-.main
-  ld %a prompt
-  call %0 print
-  ld %a 0xA0
-  .string %a
-  ld %a greet
-  call %0 print
-  ld %a 0xA0
-  call %0 print
-  ld %a exclaim
-  call %0 print
-  .line
-  halt
-
-
-hello.asm > run
-.................................................................... Run Started
-What is your name? Poptart
-Hello, Poptart!
-
-...................................................................... Run Ended
-
-hello.asm > machine
-
-PC: 31
-R0: 0030
-Ra: 001d
-Re: 0001
-Rf: 001e
-00: 0057;    87  0000000001010111  'W'                         
-01: 0068;   104  0000000001101000  'h'                         
-02: 0061;    97  0000000001100001  'a'                         
-03: 0074;   116  0000000001110100  't'                         
-04: 0020;    32  0000000000100000  ' '                         
-05: 0069;   105  0000000001101001  'i'                         
-06: 0073;   115  0000000001110011  's'                         
-07: 0020;    32  0000000000100000  ' '                         
-08: 0079;   121  0000000001111001  'y'                         
-09: 006f;   111  0000000001101111  'o'                         
-0a: 0075;   117  0000000001110101  'u'                         
-0b: 0072;   114  0000000001110010  'r'                         
-0c: 0020;    32  0000000000100000  ' '                         
-0d: 006e;   110  0000000001101110  'n'                         
-0e: 0061;    97  0000000001100001  'a'                         
-0f: 006d;   109  0000000001101101  'm'                         
-10: 0065;   101  0000000001100101  'e'                         
-11: 003f;    63  0000000000111111  '?'                         
-12: 0020;    32  0000000000100000  ' '                         
-14: 0048;    72  0000000001001000  'H'                         
-15: 0065;   101  0000000001100101  'e'                         
-16: 006c;   108  0000000001101100  'l'                         
-17: 006c;   108  0000000001101100  'l'                         
-18: 006f;   111  0000000001101111  'o'                         
-19: 002c;    44  0000000000101100  ','                         
-1a: 0020;    32  0000000000100000  ' '                         
-1c: 0021;    33  0000000000100001  '!'                         
-1e: ab0a; 43786  1010101100001010               R[b] <- M[R[a]]
-1f: cb25; 52005  1100101100100101       if (R[b] == 0) PC <- 25
-20: 9bf5; 39925  1001101111110101                 M[f5] <- R[b]
-21: 7e01; 32257  0111111000000001                     R[e] <- 1
-22: 1aae;  6830  0001101010101110           R[a] <- R[a] + R[e]
-23: 7f1e; 32542  0111111100011110                    R[f] <- 1e
-24: ef00; 61184  1110111100000000                    PC <- R[f]
-25: e000; 57344  1110000000000000                    PC <- R[0]
-26: 7a00; 31232  0111101000000000                     R[a] <- 0
-27: f01e; 61470  1111000000011110          R[0] <- PC; PC <- 1e
-28: 7aa0; 31392  0111101010100000                    R[a] <- a0
-29: 8afb; 35579  1000101011111011                 R[a] <- M[fb]
-2a: 7a14; 31252  0111101000010100                    R[a] <- 14
-2b: f01e; 61470  1111000000011110          R[0] <- PC; PC <- 1e
-2c: 7aa0; 31392  0111101010100000                    R[a] <- a0
-2d: f01e; 61470  1111000000011110          R[0] <- PC; PC <- 1e
-2e: 7a1c; 31260  0111101000011100                    R[a] <- 1c
-2f: f01e; 61470  1111000000011110          R[0] <- PC; PC <- 1e
-30: 90f6; 37110  1001000011110110                 M[f6] <- R[0]
-a0: 0050;    80  0000000001010000  'P'                         
-a1: 006f;   111  0000000001101111  'o'                         
-a2: 0070;   112  0000000001110000  'p'                         
-a3: 0074;   116  0000000001110100  't'                         
-a4: 0061;    97  0000000001100001  'a'                         
-a5: 0072;   114  0000000001110010  'r'                         
-a6: 0074;   116  0000000001110100  't'                         
-
-
-hello.asm > 14 004a
-M[14] 0048 -> 004a
-
-
-hello.asm > reset
-Program counter reset to 26.
-
-hello.asm > run
-.................................................................... Run Started
-What is your name? Poptart
-Jello, Poptart!
-
-...................................................................... Run Ended
+Program counter: ae
 
 hello.asm > dump
 
     R         |  RAM   _0   _1   _2   _3   _4   _5   _6   _7   _8   _9   _a   _b   _c   _d   _e   _f
-    0 0030    |   0_ 0057 0068 0061 0074 0020 0069 0073 0020 0079 006f 0075 0072 0020 006e 0061 006d
-    1 0000    |   1_ 0065 003f 0020 0000 004a 0065 006c 006c 006f 002c 0020 0000 0021 0000 ab0a cb25
-    2 0000    |   2_ 9bf5 7e01 1aae 7f1e ef00 e000 7a00 f01e 7aa0 8afb 7a14 f01e 7aa0 f01e 7a1c f01e
-    3 0000    |   3_ 90f6 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    4 0000    |   4_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    5 0000    |   5_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    6 0000    |   6_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    7 0000    |   7_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    8 0000    |   8_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    9 0000    |   9_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    a 001d    |   a_ 0050 006f 0070 0074 0061 0072 0074 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    b 0000    |   b_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    c 0000    |   c_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    d 0000    |   d_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    e 0001    |   e_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-    f 001e    |   f_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+    0 0000    |   0_ 0048 0065 006c 006c 006f 0021 0020 0057 0068 0061 0074 0020 0069 0073 0020 0079
+    1 0000    |   1_ 006f 0075 0072 0020 006e 0061 006d 0065 003f 0020 0000 004e 0069 0063 0065 0020
+    2 0000    |   2_ 0074 006f 0020 006d 0065 0065 0074 0020 0079 006f 0075 002c 0020 0000 0021 0000
+    3 0000    |   3_ 0057 0068 006f 006f 0070 0073 0021 0020 0049 0020 0067 0075 0065 0073 0073 0020
+    4 0000    |   4_ 0049 0020 0067 006f 0074 0020 0069 0074 0020 0062 0061 0063 006b 0077 0061 0072
+    5 0000    |   5_ 0064 0073 0021 0000 0044 006f 0020 0079 006f 0075 0020 0070 0072 0065 0066 0065
+    6 0000    |   6_ 0072 0020 0069 0074 0020 0074 0068 0061 0074 0020 0077 0061 0079 0020 0028 0079
+    7 0000    |   7_ 002f 006e 0029 003f 0020 0000 0049 0020 006b 006e 0065 0077 0020 0079 006f 0075
+    8 0000    |   8_ 0020 0077 006f 0075 006c 0064 0021 0000 0053 006f 0072 0072 0079 0020 0074 006f
+    9 0000    |   9_ 0020 0068 0065 0061 0072 0020 0074 0068 0061 0074 0021 0000 0047 006f 006f 0064
+    a 0000    |   a_ 0020 0062 0079 0065 0021 0000 a100 c1ad 91f5 7e01 100e 7fa6 ef00 ea00 7000 faa6
+    b 0000    |   b_ 70de 80fb 701b faa6 70de 7100 1110 a201 c2bd 7e01 111e 7fb7 ef00 a201 92f5 4210
+    c 0000    |   c_ c2c5 7e01 211e 7fbd ef00 702e faa6 90f6 7030 faa6 90f6 7054 faa6 70de 80fb 80de
+    d 0000    |   d_ 7179 4210 c2d7 7088 faa6 7fd9 ef00 7076 faa6 90f6 709c faa6 90f6 0000 0000 0000
+    e 0000    |   e_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+    f 0000    |   f_ 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
 
-    PC:   31
-    IR: 0000
-Pseudo: halt
+    PC:   ae
+    IR: 7000
+Pseudo: R[0] <- 0
 
+
+hello.asm > run
+.................................................................... Run Started
+Hello! What is your name? Poptart
+Nice to meet you, tratpoP!
+Whoops! I guess I got it backwards!
+Do you prefer it that way (y/n)? y
+I knew you would!
+Good bye!
+
+...................................................................... Run Ended
+
+hello.asm > 00 004a
+M[00] 0048 -> 004a
+
+
+hello.asm > pc ae
+PC <- ae
+
+hello.asm > run
+.................................................................... Run Started
+Jello! What is your name? Hahaha!
+Nice to meet you, !ahahaH!
+Whoops! I guess I got it backwards!
+Do you prefer it that way (y/n)? n
+Sorry to hear that!
+Good bye!
+
+...................................................................... Run Ended
 
 hello.asm > quit
 
 
 So long!
-
 ```
 
 ### To Use as a Library
