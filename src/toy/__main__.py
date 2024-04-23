@@ -1,10 +1,10 @@
-from .toy_computer import ToyComputer
-from .assembler import assemble
+from .lib.toy_computer import ToyComputer
+from .lib.assembler import assemble, format_assembly
 
 if __name__ == "__main__":
     from re import split
     from sys import argv
-    from .exception import ToyException
+    from .lib.exception import ToyException
 
     def banner():
         print(
@@ -45,7 +45,8 @@ if __name__ == "__main__":
 
             try:
                 if ".asm" in path:
-                    pc, ram = assemble(program)
+                    assembled = assemble(program)
+                    pc, ram = assembled.pc, assembled.words
                     computer.set_state(pc, ram)
                     print(f"Compiled {path} as assembly.")
                     print(f"Program counter: {hex(computer.pc)[2:].rjust(2, "0")}")
@@ -118,6 +119,8 @@ if __name__ == "__main__":
         pc {addr}           Set the program counter to address addr.
 
         clear (x)           Clear computer memory.
+
+        format (f) p        Saves loaded assembly as formatted html to path p. 
 
         quit (q)            Quit.
       """
@@ -221,6 +224,19 @@ if __name__ == "__main__":
                     else:
                         print(computer.state_to_machine_language())
 
+                case ["format", path] | ["f", path]:
+                    if ".asm" in loaded_path:
+                        try:
+                            with open(loaded_path) as f:
+                                code = f.read()
+                            with open(path, "w") as f:
+                                f.write(format_assembly(code))
+                            print(f"Written to {path}.")
+                        except FileNotFoundError:
+                            print(f"* Error\nFile '{load_path}' not found.")
+                    else:
+                        print("No assembly file loaded...")
+
                 case ["quit"] | ["q"]:
                     print("\n\nSo long!\n")
                     exit()
@@ -287,7 +303,8 @@ if __name__ == "__main__":
 
         computer = ToyComputer()
         if ".asm" in argv[1]:
-            pc, ram = assemble(code, show_addresses=False)
+            assembled = assemble(code, show_addresses=False)
+            pc, ram = assembled.pc, assembled.words
             computer.set_state(pc, ram)
         else:
             computer.compile_machine_language(code)

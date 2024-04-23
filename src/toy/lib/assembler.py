@@ -1,4 +1,5 @@
-from re import compile
+from dataclasses import dataclass
+from re import compile, match
 
 from .exception import ToyException
 
@@ -133,14 +134,22 @@ def pieces(line: str, splitter: str) -> list[str]:
     return result
 
 
-def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
+@dataclass
+class Assembled:
+    raw_program: str
+    pc: int
+    words: list[int]
+    address_mappings: dict[str, int]
+
+
+def assemble(code: str, show_addresses=True) -> Assembled:
     machine_code = list[int]()
     pc = 0
     lines = list[str]()
 
     for line in [
         stripped
-        for line in code.split("\n")
+        for line in code.splitlines()
         if (stripped := pieces(line, ";")[0].strip())
     ]:
         if ":" in line:
@@ -666,4 +675,143 @@ def assemble(code: str, show_addresses=True) -> tuple[int, list[int]]:
         for label, v in labels.items():
             print(f"  {label}: {hex(v)[2:].rjust(2, "0")}")
         print()
-    return pc, machine_code
+    return Assembled(code, pc, machine_code, labels)
+
+
+def format_assembly(code: str) -> str:
+    try:
+        assembled = assemble(code, False)
+        label_width = max(len(label) for label in assembled.address_mappings) + 1
+        lines = code.splitlines()
+        html = '<pre class="toy-assembly">\n'
+
+        def format_argument(argument: str) -> str:
+            m = match(pat("register"), argument)
+            if m:
+                return f'<span class="register">{argument}</span>'
+            m = match(pat("at_register"), argument)
+            if m:
+                return f'[<span class="register">%{m.group(1)}</span>]'
+            m = match(pat("label"), argument)
+            if m:
+                return f'<span class="label">{argument}</span>'
+            m = match(pat("at_label"), argument)
+            if m:
+                return f'[<span class="label">{m.group(1)}</span>]'
+            m = match(pat("value"), argument)
+            if m:
+                return f'<span class="literal">{argument}</span>'
+            m = match(pat("at_address"), argument)
+            if m:
+                return f'[<span class="literal">{m.group(1)}</span>]'
+            return f"<h1>Huh? {argument}</h1>"
+
+        for line in lines:
+            label, comment, instruction, argument = "", "", "", ""
+            ps = pieces(line, ";")
+            if len(ps) >= 2:
+                line, comment = ps[0].strip(), ("; " + "".join(ps[1:])).strip()
+
+            if line:
+                ps = pieces(line, ":")
+                if len(ps) >= 2:
+                    label, line = ps[0].strip() + ":", "".join(ps[1:]).strip()
+                if line:
+                    ps = [
+                        stripped for p in pieces(line, " ") if (stripped := p.strip())
+                    ]
+                    if ps:
+                        instruction = (
+                            f'<span class="special">{ps[0]}</span>'
+                            if "." in ps[0]
+                            else f'<span class="keyword">{ps[0]}</span>'
+                        )
+                        match ps[0]:
+                            case ".ascii":
+                                argument = (
+                                    f'<span class="string">{" ".join(ps[1:])}</span>'
+                                )
+                            case ".data":
+                                # In case no spaces between commas...
+                                argument_pieces = list[str]()
+                                for p in ps[1:]:
+                                    argument_pieces.extend(n for n in p.split(",") if n)
+                                argument = ", ".join(
+                                    format_argument(p) for p in argument_pieces
+                                )
+                            case _:
+                                argument = " ".join(format_argument(p) for p in ps[1:])
+
+            html += (
+                f'<span class="label">{label.rjust(label_width)}</span>'
+                if label
+                else " " * label_width
+            )
+
+            if instruction or argument:
+                html += f" {instruction} {argument}"
+            if comment:
+                html += f'<span class="comment"> {comment}</span>'
+
+            html += "\n"
+
+        html += "</pre>"
+        return r"""
+<!doctype html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Assembly</title>
+  <style>
+    .toy-assembly {
+      font-family: 'IBM Plex Mono', monospace;
+      padding: 0.5em;
+      border-top: 1pt solid;
+      border-bottom: 1pt solid;
+      line-height: 1.4em;
+    }
+
+    .label {
+      font-style: italic;
+    }
+
+    .string {
+      color: brown;
+    }
+
+    .keyword {
+      font-weight: 500;
+      color: cornflowerblue;
+    }
+
+    .special {
+      color: blueviolet;
+    }
+
+    .literal {
+      color: slateblue;
+    }
+
+    .comment {
+      color: coral;
+    }
+
+    .register {
+      color: forestgreen;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <<code>>
+
+</body>
+
+</html>
+""".replace("<<code>>", html)
+    except ToyException as e:
+        return f"Invalid assembly.\n{e.message}"
