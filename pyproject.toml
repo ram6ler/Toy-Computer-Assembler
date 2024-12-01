@@ -1,6 +1,6 @@
 [project]
 name = "toy"
-version = "0.0.1"
+version = "0.1.0"
 authors = [{ name = "Richard Nathan Ambler", email = "rambler@wya.top" }]
 description = "An implementation of Sedgewick & Wayne's Toy Computer and a simple assembler."
 readme = "README.md"
@@ -12,6 +12,8 @@ classifiers = [
   "Intended Audience :: Education",
   "Typing :: Typed",
 ]
+keywords = ["assembly", "machine language", "Sedgewick", "Wayne"]
+dependencies = ["prompt_toolkit>3.0"]
 
 [build-system]
 requires = ["setuptools>=61.0"]

@@ -1,15 +1,36 @@
-from .lib.toy_computer import ToyComputer
-from .lib.assembler import assemble, format_assembly
-
 if __name__ == "__main__":
     from re import split
     from sys import argv
+
     from .lib.exception import ToyException
+    from .lib.toy_computer import ToyComputer
+    from .lib.assembler import assemble, format_assembly
+
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.completion import PathCompleter, NestedCompleter
+
+    ToyComputerCompleter = NestedCompleter(
+        {
+            "load": PathCompleter(),
+            "run": None,
+            "dump": PathCompleter(),
+            "machine": PathCompleter(),
+            "step": None,
+            "clear": None,
+            "format": PathCompleter(),
+            "quit": None,
+            "help": None,
+            "about": None,
+            "pc": None,
+        },
+        ignore_case=True,
+    )
+
+    session = PromptSession()
 
     def banner():
         print(
             r"""
- 
        _____
       |_   _|__ _  _ 
  .------| |/ _ \ || |---------------------.
@@ -18,7 +39,8 @@ if __name__ == "__main__":
  |  / __|___ _ __  _ __ _  _| |_ ___ _ _  |
  '-| (__/ _ \ '  \| '_ \ || |  _/ -_) '_|-'
     \___\___/_|_|_| .__/\_,_|\__\___|_|
-                  |_|         Pre-alpha"""
+                  |_|
+        """
         )
 
     def lineate(message: str) -> None:
@@ -82,47 +104,46 @@ if __name__ == "__main__":
                 repeat_previous_step = False
                 instruction = previous_step
             else:
-                instruction = input(f"\n{loaded_path.split("/")[-1]} > ")
-            match split(r" +", instruction):
+                instruction = session.prompt(
+                    f"\n{loaded_path.split("/")[-1]} > ",
+                    completer=ToyComputerCompleter,
+                )
+            match split(r" +", instruction.strip()):
                 case ["help"] | ["h"]:
                     print(
                         r"""
       To use:
 
-        help (h)            Display this help message.
+        help                Display this help message.
 
-        about (a)           Display more information about Toy Computer.
+        about               Display more information about Toy Computer.
 
-        load (l) [p]        Compile and load a machine language or
+        load [p]            Compile and load a machine language or
                             assembly language file p. (If .asm is
                             contained in the file name the language
                             is assumed to be assembly.) If no path is
                             provided, re-compile loaded file.
 
-        run (r)             Run the program from the current position.
+        run                 Run the program from the current position.
 
-        dump (d) [p]        Output the memory and register data. If a path is
+        dump [p]            Output the memory and register data. If a path is
                             added, save dump to path p.
 
-        machine (m) [p]     Output the current state as machine language. If
+        machine [p]         Output the current state as machine language. If
                             a path is added, save machine language to path p.
 
-        step (s)            Step through one fetch-decode-execute cycle. (If
-                            dump (d) or machine (m) are added, the step is
-                            followed by the respective output.)
+        step                Step through one fetch-decode-execute cycle.
 
-        repeat (.)          Repeat previous step instruction.
+        {addr}: {val}       Write value val to one-byte memory address addr.
+                            (Both addr and val are expected to be in hexadecimal.)
 
-        {addr} {val}        Write value val to one-byte memory address addr.
-                            Both addr and val are expected to be in hexadecimal.
+        pc: {addr}          Set the program counter to address addr.
 
-        pc {addr}           Set the program counter to address addr.
+        clear               Clear computer memory.
 
-        clear (x)           Clear computer memory.
+        format [p]          Saves loaded assembly as formatted html to path p. 
 
-        format (f) p        Saves loaded assembly as formatted html to path p. 
-
-        quit (q)            Quit.
+        quit                Quit.
       """
                     )
                     continue
@@ -143,6 +164,7 @@ if __name__ == "__main__":
   For further details, see:
 
     https://github.com/ram6ler/Toy-Computer-Assembler
+
 """
                     )
                 case ["load", path] | ["l", path]:
@@ -177,7 +199,7 @@ if __name__ == "__main__":
                     computer.clear()
                     print("Cleared.")
 
-                case ["step", *rest] | ["s", *rest]:
+                case ["step"] | ["s"]:
                     s_pc = hex(computer.pc)[2:].rjust(2, "0")
                     s_cir = hex(computer.ir)[2:].rjust(4, "0")
                     pseudo = ToyComputer.as_pseudocode(computer.ir)
@@ -193,20 +215,20 @@ if __name__ == "__main__":
                         else:
                             print()
                             lineate("Step Ended")
-                            if "dump" in rest or "d" in rest:
-                                print(computer.dump())
-                            if "machine" in rest or "m" in rest:
-                                print(computer.state_to_machine_language())
+                            # if "dump" in rest or "d" in rest:
+                            #     print(computer.dump())
+                            # if "machine" in rest or "m" in rest:
+                            #     print(computer.state_to_machine_language())
                             previous_step = instruction
                     except ToyException as e:
                         print("* Error")
                         print(e.message)
 
-                case ["repeat"] | ["."]:
-                    if previous_step:
-                        repeat_previous_step = True
-                    else:
-                        print("No step instructions input yet...")
+                # case ["repeat"] | ["."]:
+                #     if previous_step:
+                #         repeat_previous_step = True
+                #     else:
+                #         print("No step instructions input yet...")
 
                 case ["dump", *rest] | ["d", *rest]:
                     if rest:
@@ -242,7 +264,7 @@ if __name__ == "__main__":
                     exit()
 
                 case [sa, sv]:
-                    if sa.lower() == "pc":
+                    if sa.lower() == "pc:":
                         try:
                             a = int(sv, 16)
                             if a < 0 or a > 0xFF:
@@ -257,7 +279,7 @@ if __name__ == "__main__":
                             )
                     else:
                         try:
-                            a = int(sa, 16)
+                            a = int(sa.replace(":", ""), 16)
                         except ValueError:
                             print(
                                 "Not understood. "
