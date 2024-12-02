@@ -64,6 +64,9 @@ if __name__ == "__main__":
             except FileNotFoundError:
                 print(f"File '{path}' not found...")
                 return False
+            except IsADirectoryError:
+                print(f"'{path}' is a directory...")
+                return False
 
             try:
                 if ".asm" in path:
