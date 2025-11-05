@@ -74,11 +74,15 @@ if __name__ == "__main__":
                     pc, ram = assembled.pc, assembled.words
                     computer.set_state(pc, ram)
                     print(f"Compiled {path} as assembly.")
-                    print(f"Program counter: {hex(computer.pc)[2:].rjust(2, "0")}")
+                    print(
+                        f"Program counter: {hex(computer.pc)[2:].rjust(2, '0')}"
+                    )
                 else:
                     computer.compile_machine_language(program)
                     print(f"Compiled {path} as machine language.")
-                    print(f"Program counter: {hex(computer.pc)[2:].rjust(2, "0")}")
+                    print(
+                        f"Program counter: {hex(computer.pc)[2:].rjust(2, '0')}"
+                    )
 
                 original_pc = computer.pc
                 loaded_path = path
@@ -108,7 +112,7 @@ if __name__ == "__main__":
                 instruction = previous_step
             else:
                 instruction = session.prompt(
-                    f"\n{loaded_path.split("/")[-1]} > ",
+                    f"\n{loaded_path.split('/')[-1]} > ",
                     completer=ToyComputerCompleter,
                 )
             match split(r" +", instruction.strip()):
@@ -208,7 +212,7 @@ if __name__ == "__main__":
                     pseudo = ToyComputer.as_pseudocode(computer.ir)
                     print(
                         f"PC: 0x{s_pc} CIR: 0x{s_cir} "
-                        f"Pseudocode: {pseudo if pseudo else "halt"}"
+                        f"Pseudocode: {pseudo if pseudo else 'halt'}"
                     )
                     lineate("Step Started")
                     try:
@@ -245,7 +249,9 @@ if __name__ == "__main__":
                     if rest:
                         with open(rest[0], "w") as f:
                             f.write(computer.state_to_machine_language())
-                        print(f"State as machine language written to {rest[0]}.")
+                        print(
+                            f"State as machine language written to {rest[0]}."
+                        )
                     else:
                         print(computer.state_to_machine_language())
 
@@ -267,14 +273,14 @@ if __name__ == "__main__":
                     exit()
 
                 case [sa, sv]:
-                    if sa.lower() == "pc:":
+                    if sa.lower() == "pc":
                         try:
                             a = int(sv, 16)
                             if a < 0 or a > 0xFF:
                                 print("Expecting a one-byte value...")
                             else:
                                 computer.pc = a
-                                print(f"PC <- {hex(a)[2:].rjust(2, "0")}")
+                                print(f"PC <- {hex(a)[2:].rjust(2, '0')}")
                         except ValueError:
                             print(
                                 "Not understood. "
@@ -301,17 +307,21 @@ if __name__ == "__main__":
                             )
                             continue
                         if v < 0 or v > 0xFFFF:
-                            print(f"Value {hex(v)} cannot be stored in two bytes...")
+                            print(
+                                f"Value {hex(v)} cannot be stored in two bytes..."
+                            )
                             continue
                         print(
-                            f"M[{hex(a)[2:].rjust(2, "0")}] "
-                            f"{hex(computer.memory[a])[2:].rjust(4, "0")} -> "
-                            f"{hex(v)[2:].rjust(4, "0")}\n{ToyComputer.as_pseudocode(v)}"
+                            f"M[{hex(a)[2:].rjust(2, '0')}] "
+                            f"{hex(computer.memory[a])[2:].rjust(4, '0')} -> "
+                            f"{hex(v)[2:].rjust(4, '0')}\n{ToyComputer.as_pseudocode(v)}"
                         )
                         computer.memory[a] = v
 
                 case _:
-                    print("Not understood. Input 'help' for available instructions.")
+                    print(
+                        "Not understood. Input 'help' for available instructions."
+                    )
 
     if len(argv) == 1:
         try:

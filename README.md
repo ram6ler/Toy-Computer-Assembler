@@ -197,7 +197,7 @@ For the unary operation *not*:
 
 ### Notes
 
-* For some assembly instructions, registers D, E and F are used for scratch work; in general, these registers should be avoided.
+* For some assembly instructions, registers D, E and F are used for scratch work; in general, these registers should be avoided when programming in assembly.
 
 ### Example
 
@@ -314,6 +314,7 @@ python -m toy
 This opens an interface that allows us to load, run, edit and explore programs. Here is an example session:
 
 ```txt
+
        _____
       |_   _|__ _  _ 
  .------| |/ _ \ || |---------------------.
@@ -322,9 +323,10 @@ This opens an interface that allows us to load, run, edit and explore programs. 
  |  / __|___ _ __  _ __ _  _| |_ ___ _ _  |
  '-| (__/ _ \ '  \| '_ \ || |  _/ -_) '_|-'
     \___\___/_|_|_| .__/\_,_|\__\___|_|
-                  |_|         Pre-alpha
+                  |_|
+        
 
-
+ 
  > load examples/assembly/hello.asm
 
 Address Mappings:
@@ -348,7 +350,7 @@ Address Mappings:
 
 Compiled examples/assembly/hello.asm as assembly.
 Program counter: ae
-
+ 
 hello.asm > dump
 
     R         |  RAM   _0   _1   _2   _3   _4   _5   _6   _7   _8   _9   _a   _b   _c   _d   _e   _f
@@ -373,7 +375,7 @@ hello.asm > dump
     IR: 7000
 Pseudo: R[0] <- 0
 
-
+ 
 hello.asm > run
 .................................................................... Run Started
 Hello! What is your name? Poptart
@@ -384,14 +386,14 @@ I knew you would!
 Good bye!
 
 ...................................................................... Run Ended
-
-hello.asm > 00 004a
+ 
+hello.asm > 00: 004a
 M[00] 0048 -> 004a
 
-
-hello.asm > pc ae
+ 
+hello.asm > pc: ae
 PC <- ae
-
+ 
 hello.asm > run
 .................................................................... Run Started
 Jello! What is your name? Hahaha!
@@ -402,11 +404,12 @@ Sorry to hear that!
 Good bye!
 
 ...................................................................... Run Ended
-
+ 
 hello.asm > quit
 
 
 So long!
+
 ```
 
 ### To Use as a Library
